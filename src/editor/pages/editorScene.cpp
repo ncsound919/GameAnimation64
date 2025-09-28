@@ -71,7 +71,7 @@ void Editor::Scene::draw()
   ImGui::End();
 
   ImGui::Begin("Assets");
-    ImGui::Text("Assets");
+    assetsBrowser.draw();
   ImGui::End();
 
   ImGui::Begin("Project");

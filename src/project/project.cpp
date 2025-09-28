@@ -5,6 +5,7 @@
 #include "project.h"
 #include "simdjson.h"
 #include <optional>
+#include "../context.h"
 
 #include "../utils/json.h"
 #include "SDL3/SDL_iostream.h"
@@ -34,7 +35,10 @@ std::string Project::Project::serialize() const {
 Project::Project::Project(const std::string &path)
   : path{path}, pathConfig{path + "/project.json"}
 {
+  assert(ctx.project == nullptr);
+  ctx.project = this;
   deserialize(Utils::JSON::loadFile(pathConfig));
+  assets.reload();
 }
 
 void Project::Project::save() {

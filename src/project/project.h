@@ -5,6 +5,7 @@
 #pragma once
 #include <string>
 
+#include "assetManager.h"
 #include "simdjson.h"
 
 namespace Project
@@ -14,6 +15,8 @@ namespace Project
     private:
       std::string path;
       std::string pathConfig;
+
+      AssetManager assets{};
 
       void deserialize(const simdjson::simdjson_result<simdjson::dom::element> &doc);
       std::string serialize() const;
@@ -32,6 +35,9 @@ namespace Project
       Project(const std::string &path);
 
       void save();
+
+      AssetManager& getAssets() { return assets; }
+      [[nodiscard]] const std::string &getPath() const { return path; }
 
   };
 }

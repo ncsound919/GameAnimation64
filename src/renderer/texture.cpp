@@ -2,17 +2,23 @@
 * @copyright 2025 - Max Bebök
 * @license MIT
 */
-#pragma once
 #include "texture.h"
 
 #include <cassert>
 
 #include "SDL3_image/SDL_image.h"
 
-Renderer::Texture::Texture(SDL_GPUDevice* device, const std::string &imgPath)
+Renderer::Texture::Texture(SDL_GPUDevice* device, const std::string &imgPath, int rasterWidth, int rasterHeight)
   : gpuDevice(device)
 {
-  auto imgRaw = IMG_Load(imgPath.c_str());
+  SDL_Surface *imgRaw;
+  if (imgPath.ends_with(".svg") && rasterWidth > 0 && rasterHeight > 0) {
+    auto imgStream = SDL_IOFromFile(imgPath.c_str(), "rb");
+    imgRaw = IMG_LoadSizedSVG_IO(imgStream, rasterWidth, rasterHeight);
+  } else {
+    imgRaw = IMG_Load(imgPath.c_str());
+  }
+
   auto img = SDL_ConvertSurface(imgRaw, SDL_PIXELFORMAT_BGRA32);
   SDL_DestroySurface(imgRaw);
 

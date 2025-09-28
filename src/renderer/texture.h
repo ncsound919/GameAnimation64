@@ -20,7 +20,7 @@ namespace Renderer
       int height{0};
 
     public:
-      Texture(SDL_GPUDevice* device, const std::string &imgPath);
+      Texture(SDL_GPUDevice* device, const std::string &imgPath, int rasterWidth = 0, int rasterHeight = 0);
       ~Texture();
 
       [[nodiscard]] int getWidth() const { return width; };

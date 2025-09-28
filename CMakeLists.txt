@@ -60,6 +60,10 @@ add_executable(p64editor src/main.cpp
         src/renderer/scene.cpp
         src/renderer/framebuffer.h
         src/renderer/framebuffer.cpp
+        src/editor/pages/parts/assetsBrowser.h
+        src/editor/pages/parts/assetsBrowser.cpp
+        src/project/assetManager.h
+        src/project/assetManager.cpp
 )
 
 target_include_directories(p64editor PRIVATE vendored/imgui vendored/simdjson vendored/IconFontCppHeaders)

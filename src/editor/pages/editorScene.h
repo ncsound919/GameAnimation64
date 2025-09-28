@@ -3,6 +3,7 @@
 * @license MIT
 */
 #pragma once
+#include "parts/assetsBrowser.h"
 #include "parts/viewport3D.h"
 
 namespace Editor
@@ -11,6 +12,8 @@ namespace Editor
   {
     private:
       Viewport3D viewport3d{};
+      AssetsBrowser assetsBrowser{};
+
       bool dockSpaceInit{false};
 
     public:
