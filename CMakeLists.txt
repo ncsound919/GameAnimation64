@@ -58,6 +58,8 @@ add_executable(p64editor src/main.cpp
         src/editor/pages/parts/viewport3D.cpp
         src/renderer/scene.h
         src/renderer/scene.cpp
+        src/renderer/framebuffer.h
+        src/renderer/framebuffer.cpp
 )
 
 target_include_directories(p64editor PRIVATE vendored/imgui vendored/simdjson vendored/IconFontCppHeaders)

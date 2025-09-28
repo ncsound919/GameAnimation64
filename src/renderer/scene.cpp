@@ -11,9 +11,8 @@
 
 #include "./texture.h"
 #include "./vertBuffer.h"
+#include "framebuffer.h"
 #include "shader.h"
-
-SDL_GPUTexture* fb3D{nullptr};
 
 namespace
 {
@@ -21,9 +20,7 @@ namespace
   Renderer::VertBuffer *vertBuff{nullptr};
   Renderer::Shader *shader3d{nullptr};
 
-
   std::vector<Renderer::Vertex> vertices{};
-  SDL_GPUTextureCreateInfo texture_info = {};
 }
 
 Renderer::Scene::Scene()
@@ -89,21 +86,16 @@ Renderer::Scene::~Scene() {
 
 void Renderer::Scene::update()
 {
-  // Create texture
-  texture_info.type = SDL_GPU_TEXTURETYPE_2D;
-  texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-  texture_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
-  texture_info.width = 640;
-  texture_info.height = 480;
-  texture_info.layer_count_or_depth = 1;
-  texture_info.num_levels = 1;
-  texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
-  if (fb3D)SDL_ReleaseGPUTexture(ctx.gpu, fb3D);
-  fb3D = SDL_CreateGPUTexture(ctx.gpu, &texture_info);
 }
+
+Renderer::Framebuffer *fb;
 
 void Renderer::Scene::draw()
 {
+  if (!fb) {
+    fb = new Framebuffer();
+  }
+
   ImDrawData* draw_data = ImGui::GetDrawData();
   const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
 
@@ -116,16 +108,6 @@ void Renderer::Scene::draw()
     SDL_SubmitGPUCommandBuffer(command_buffer);
     return;
   }
-
-  // Setup and start a render pass
-  SDL_GPUColorTargetInfo targetInfo3D = {};
-  targetInfo3D.texture = fb3D;
-  targetInfo3D.clear_color = {0, 0, 0, 1};
-  targetInfo3D.load_op = SDL_GPU_LOADOP_CLEAR;
-  targetInfo3D.store_op = SDL_GPU_STOREOP_STORE;
-  targetInfo3D.mip_level = 0;
-  targetInfo3D.layer_or_depth_plane = 0;
-  targetInfo3D.cycle = false;
 
   SDL_GPUColorTargetInfo targetInfo2D = {};
   targetInfo2D.texture = swapchain_texture;
@@ -143,11 +125,13 @@ void Renderer::Scene::draw()
     SDL_EndGPUCopyPass(copyPass);
   }
 
-  SDL_GPURenderPass* renderPass3D = SDL_BeginGPURenderPass(command_buffer, &targetInfo3D, 1, nullptr);
-  SDL_BindGPUGraphicsPipeline(renderPass3D, graphicsPipeline);
+  fb->resize(640, 480);
 
   if (ctx.project)
   {
+    SDL_GPURenderPass* renderPass3D = SDL_BeginGPURenderPass(command_buffer, &fb->getTargetInfo(), 1, nullptr);
+    SDL_BindGPUGraphicsPipeline(renderPass3D, graphicsPipeline);
+
     // bind the vertex buffer
     SDL_GPUBufferBinding bufferBindings[1];
     vertBuff->addBinding(bufferBindings[0]);
@@ -158,9 +142,9 @@ void Renderer::Scene::draw()
     //SDL_SetGPUScissor(renderPass, &scissor3D);
     SDL_DrawGPUPrimitives(renderPass3D, 3, 1, 0, 0);
     //SDL_SetGPUScissor(renderPass, &scissorFull);
+    SDL_EndGPURenderPass(renderPass3D);
   }
 
-  SDL_EndGPURenderPass(renderPass3D);
 
   // Render ImGui
   SDL_GPURenderPass* renderPass2D = SDL_BeginGPURenderPass(command_buffer, &targetInfo2D, 1, nullptr);

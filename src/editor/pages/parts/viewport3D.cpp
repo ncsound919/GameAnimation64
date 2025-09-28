@@ -7,8 +7,6 @@
 #include "imgui.h"
 #include "SDL3/SDL_gpu.h"
 
-extern SDL_GPUTexture* fb3D;
-
 namespace
 {
 
@@ -20,7 +18,7 @@ Editor::Viewport3D::Viewport3D()
 
 void Editor::Viewport3D::draw() {
   ImGui::Text("Viewport");
-  if (fb3D) {
-    ImGui::Image(ImTextureID(fb3D), {320,240});
-  }
+
+  //  ImGui::Image(ImTextureID(fb3D), {320,240});
+
 }
