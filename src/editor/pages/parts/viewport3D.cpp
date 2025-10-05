@@ -5,6 +5,7 @@
 #include "viewport3D.h"
 
 #include "imgui.h"
+#include "ImViewGuizmo.h"
 #include "../../../context.h"
 #include "../../../renderer/scene.h"
 #include "SDL3/SDL_gpu.h"
@@ -34,6 +35,12 @@ Editor::Viewport3D::Viewport3D()
 
   vertBuff = new Renderer::VertBuffer({sizeof(vertices), ctx.gpu});
   vertBuff->setData(vertices);
+
+  auto &gizStyle = ImViewGuizmo::GetStyle();
+  gizStyle.scale = 0.5f;
+  gizStyle.circleRadius = 19.0f;
+  gizStyle.labelSize = 1.9f;
+  gizStyle.labelColor = IM_COL32(0,0,0,0xFF);
 }
 
 Editor::Viewport3D::~Viewport3D() {
@@ -61,8 +68,16 @@ void Editor::Viewport3D::onCopyPass(SDL_GPUCommandBuffer* cmdBuff, SDL_GPUCopyPa
   vertBuff->upload(*copyPass);
 }
 
+namespace
+{
+  // @TODO: camera
+  constinit glm::vec3 cameraPos{};
+  constinit glm::quat cameraRot{};
+}
+
 void Editor::Viewport3D::draw() {
   auto currSize = ImGui::GetContentRegionAvail();
+  auto currPos = ImGui::GetWindowPos();
   if (currSize.x < 64)currSize.x = 64;
   if (currSize.y < 64)currSize.y = 64;
   currSize.y -= 24;
@@ -72,4 +87,8 @@ void Editor::Viewport3D::draw() {
   ImGui::Text("Viewport");
   ImGui::Image(ImTextureID(fb.getTexture()), {currSize.x, currSize.y});
 
+  ImVec2 gizPos{currPos.x + currSize.x - 40, currPos.y + 104};
+  if (ImViewGuizmo::Rotate(cameraPos, cameraRot, gizPos)) {
+
+  }
 }

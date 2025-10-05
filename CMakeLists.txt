@@ -110,6 +110,7 @@ target_include_directories(p64editor PRIVATE
     vendored/IconFontCppHeaders
     vendored/SHA256/include
     vendored/ImGuiTextSelect
+    vendored/ImViewGuizmo
     vendored/glm
 )
 

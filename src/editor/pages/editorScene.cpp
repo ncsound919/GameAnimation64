@@ -10,6 +10,9 @@
 #include "../actions.h"
 #include "../../context.h"
 
+#define IMVIEWGUIZMO_IMPLEMENTATION 1
+#include "ImViewGuizmo.h"
+
 namespace
 {
   constexpr float HEIGHT_TOP_BAR = 26.0f;
@@ -20,6 +23,8 @@ namespace
 
 void Editor::Scene::draw()
 {
+  ImViewGuizmo::BeginFrame();
+
   auto &io = ImGui::GetIO();
   auto viewport = ImGui::GetMainViewport();
 
