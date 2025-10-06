@@ -44,18 +44,21 @@ void ImDrawCallback_ImplSDLGPU3_SetSamplerRepeat(const ImDrawList* parent_list, 
 }
 
 // Main code
-int main(int, char**)
+int main(int argc, char** argv)
 {
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
   {
     printf("Error: SDL_Init(): %s\n", SDL_GetError());
     return -1;
   }
+  SDL_GetTicks();
 
   float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
   SDL_WindowFlags window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
   SDL_Window* window = SDL_CreateWindow("Pyrite64 - Editor", (int)(1280 * main_scale), (int)(800 * main_scale), window_flags);
   ctx.window = window;
+
+  srand(time(NULL) + SDL_GetTicks());
 
   if(window == nullptr)
   {
