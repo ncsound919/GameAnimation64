@@ -28,8 +28,13 @@ void Editor::AssetInspector::draw() {
     return;
   }
 
+  bool hasAssetConf = true;
+  if (asset->type == FileType::CODE || asset->type == FileType::PREFAB) {
+    hasAssetConf = false;
+  }
+
   ImGui::Text("File: %s", asset->name.c_str());
-  if (ImGui::CollapsingHeader("Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (hasAssetConf && ImGui::CollapsingHeader("Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::InpTable::start("Settings");
 
     if (asset->type == FileType::IMAGE)

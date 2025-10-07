@@ -5,15 +5,24 @@
 #include "assetManager.h"
 #include "../context.h"
 #include <filesystem>
+#include <format>
 
 #include "SHA256.h"
 #include "../utils/fs.h"
 #include "../utils/hash.h"
 #include "../utils/json.h"
 #include "../utils/jsonBuilder.h"
+#include "../utils/string.h"
 
 namespace
 {
+  std::filesystem::path getCodePath(Project::Project *project) {
+    auto res = std::filesystem::path{project->getPath()} / "src" / "user";
+    if (!std::filesystem::exists(res)) {
+      std::filesystem::create_directory(res);
+    }
+    return res;
+  }
 }
 
 std::string Project::AssetManager::AssetConf::serialize() const {
@@ -24,6 +33,12 @@ std::string Project::AssetManager::AssetConf::serialize() const {
   builder.set("gltfBVH", gltfBVH);
   builder.set("exclude", exclude);
   return builder.toString();
+}
+
+Project::AssetManager::AssetManager(Project* pr)
+  : project{pr}
+{
+  defaultScript = Utils::FS::loadTextFile("data/scripts/default.cpp");
 }
 
 void Project::AssetManager::reload() {
@@ -80,6 +95,49 @@ void Project::AssetManager::reload() {
       entries.push_back(entry);
     }
   }
+
+  auto codePath = getCodePath(project);
+  for (const auto &entry : std::filesystem::directory_iterator{codePath}) {
+    if (entry.is_regular_file()) {
+      auto path = entry.path();
+      auto ext = path.extension().string();
+
+      FileType type = FileType::UNKNOWN;
+      if (ext == ".cpp") {
+        type = FileType::CODE;
+      } else {
+        continue;
+      }
+
+      auto code = Utils::FS::loadTextFile(path);
+      auto uuidPos = code.find("Script::");
+      if (uuidPos == std::string::npos)continue;
+      uuidPos += 8;
+      if (uuidPos + 16 > code.size())continue;
+      auto uuidStr = code.substr(uuidPos, 16);
+      uint64_t uuid = 0;
+      try {
+        uuid = std::stoull(uuidStr, nullptr, 16);
+      } catch (...) {
+        continue;
+      }
+
+      Entry entry{
+        .uuid = uuid,
+        .name = path.filename().string(),
+        .path = path.string(),
+        .type = type,
+      };
+
+      entries.push_back(entry);
+      entriesMap[entry.uuid] = static_cast<int>(entries.size() - 1);
+
+      if (type == FileType::CODE) {
+        entriesScript.push_back(entry);
+        entriesMapScript[entry.uuid] = static_cast<int>(entriesScript.size() - 1);
+      }
+    }
+  }
 }
 
 void Project::AssetManager::save()
@@ -92,4 +150,21 @@ void Project::AssetManager::save()
     auto json = entry.conf.serialize();
     Utils::FS::saveTextFile(pathMeta, entry.conf.serialize());
   }
+}
+
+void Project::AssetManager::createScript(const std::string &name) {
+  auto codePath = getCodePath(project);
+  auto filePath = codePath / (name + ".cpp");
+
+  uint64_t uuid = Utils::Hash::sha256_64bit("CODE:" + filePath.string() + std::to_string(rand()));
+  auto uuidStr = std::format("{:016X}", uuid);
+  uuidStr[0] = 'C'; // avoid leading numbers since it's used as a namespace name
+
+  if (std::filesystem::exists(filePath))return;
+
+  auto code = defaultScript;
+  code = Utils::replaceAll(code, "__UUID__", uuidStr);
+
+  Utils::FS::saveTextFile(filePath, code);
+  reload();
 }

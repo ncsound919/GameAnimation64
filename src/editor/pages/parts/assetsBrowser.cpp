@@ -12,47 +12,81 @@ using FileType = Project::AssetManager::FileType;
 namespace
 {
   constexpr int ICON_MAX_SIZE = 64;
+
+  constexpr int TAB_IDX_ASSETS = 0;
+  constexpr int TAB_IDX_SCRIPTS = 1;
+  constexpr int TAB_IDX_PREFABS = 2;
 }
 
 Editor::AssetsBrowser::AssetsBrowser()
   : iconFile{ctx.gpu, "data/img/icons/file.svg", ICON_MAX_SIZE, ICON_MAX_SIZE},
    iconMesh{ctx.gpu, "data/img/icons/mesh.svg", ICON_MAX_SIZE, ICON_MAX_SIZE},
-   iconMusic{ctx.gpu, "data/img/icons/music.svg", ICON_MAX_SIZE, ICON_MAX_SIZE}
+   iconMusic{ctx.gpu, "data/img/icons/music.svg", ICON_MAX_SIZE, ICON_MAX_SIZE},
+   iconCodeAdd{ctx.gpu, "data/img/icons/scriptAdd.svg", ICON_MAX_SIZE, ICON_MAX_SIZE},
+   iconCodeCpp{ctx.gpu, "data/img/icons/scriptCpp.svg", ICON_MAX_SIZE, ICON_MAX_SIZE}
 {
+  activeTab = 1;
 }
 
 Editor::AssetsBrowser::~AssetsBrowser() {
 }
 
-void Editor::AssetsBrowser::draw()
-{
+void Editor::AssetsBrowser::draw() {
   auto &assets = ctx.project->getAssets().getEntries();
+
+  const char* TABS[] = {
+    ICON_FA_FILE "  Assets",
+    ICON_FA_CODE "  Scripts",
+    ICON_FA_CUBE "  Prefabs"
+  };
+
+  ImGui::BeginChild("LEFT", ImVec2(94, 0), ImGuiChildFlags_Border);
+  for (int i=0; i<3; ++i) {
+    bool isActive = i == activeTab;
+    if (ImGui::Selectable(TABS[i], isActive))activeTab = i;
+  }
+  ImGui::EndChild();
+
+  ImGui::SameLine();
+  ImGui::BeginChild("RIGHT");
 
   auto availWidth = ImGui::GetContentRegionAvail().x - 4;
   float imageSize = 64;
   float itemWidth = imageSize + 18;
   float currentWidth = 0.0f;
 
-  for (const auto &asset : assets)
-  {
-    if (asset.type == FileType::UNKNOWN)continue;
+  auto checkLineBreak = [&]() {
     if ((currentWidth+itemWidth) > availWidth) {
       currentWidth = 0.0f;
     } else {
       if (currentWidth != 0)ImGui::SameLine();
     }
+    currentWidth += itemWidth;
+  };
+
+  for (const auto &asset : assets)
+  {
+    if (asset.type == FileType::CODE) {
+      if (activeTab != TAB_IDX_SCRIPTS)continue;
+    } else {
+      if (activeTab == TAB_IDX_SCRIPTS)continue;
+    }
+
+    if (asset.type == FileType::UNKNOWN)continue;
+    checkLineBreak();
 
     auto icon = ImTextureRef(iconFile.getGPUTex());
     if (asset.texture) {
-        icon = ImTextureRef(asset.texture->getGPUTex());
+      icon = ImTextureRef(asset.texture->getGPUTex());
     } else {
       if (asset.type == FileType::MODEL_3D) {
         icon = ImTextureRef(iconMesh.getGPUTex());
       } else if (asset.type == FileType::AUDIO) {
         icon = ImTextureRef(iconMusic.getGPUTex());
+      } else if (asset.type == FileType::CODE) {
+        icon = ImTextureRef(iconCodeCpp.getGPUTex());
       }
     }
-
 
     bool isSelected = (ctx.selAssetUUID == asset.uuid);
     if(isSelected) {
@@ -81,8 +115,35 @@ void Editor::AssetsBrowser::draw()
         asset.uuid >> 32, asset.uuid & 0xFFFFFFFF
       );
     }
-
-    currentWidth += itemWidth;
-
   }
+
+  if (activeTab == TAB_IDX_SCRIPTS)
+  {
+    checkLineBreak();
+    if (ImGui::ImageButton("Add", ImTextureRef(iconCodeAdd.getGPUTex()),
+     {imageSize, imageSize}, {0,0}, {1,1}, {0,0,0,0}, {1,1,1,1.0f}
+    )) {
+      // ask name in popup
+      ImGui::OpenPopup("NewScript");
+    }
+  }
+
+  if(ImGui::BeginPopup("NewScript"))
+  {
+    static char scriptName[128] = "New_Script";
+    ImGui::Text("Enter script name:");
+    ImGui::InputText("##Name", scriptName, sizeof(scriptName));
+    if (ImGui::Button("Create")) {
+      ctx.project->getAssets().createScript(scriptName);
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
+
+
+  ImGui::EndChild();
 }

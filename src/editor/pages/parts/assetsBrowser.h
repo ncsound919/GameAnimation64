@@ -13,6 +13,10 @@ namespace Editor
       Renderer::Texture iconFile;
       Renderer::Texture iconMesh;
       Renderer::Texture iconMusic;
+      Renderer::Texture iconCodeAdd;
+      Renderer::Texture iconCodeCpp;
+
+      int activeTab{0};
 
     public:
       AssetsBrowser();

@@ -94,6 +94,11 @@ void Editor::Scene::draw()
     objectInspector.draw();
   ImGui::End();
 
+
+  ImGui::Begin("Assets");
+  assetsBrowser.draw();
+  ImGui::End();
+
   ImGui::Begin("Scenes");
     sceneBrowser.draw();
   ImGui::End();
@@ -108,10 +113,6 @@ void Editor::Scene::draw()
       sceneInspector.draw();
     ImGui::End();
   }
-
-  ImGui::Begin("Assets");
-    assetsBrowser.draw();
-  ImGui::End();
 
   ImGui::Begin("Log");
     logWindow.draw();
@@ -166,8 +167,6 @@ void Editor::Scene::draw()
       ImGui::EndMenu();
     }
 
-
-
     ImGui::EndMenuBar();
   }
   ImGui::End();
@@ -180,6 +179,8 @@ void Editor::Scene::draw()
     | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
     | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking
   );
-  ImGui::Text("%.2f FPS", io.Framerate);
+
+  int fps = (int)roundf(io.Framerate);
+  ImGui::Text("%d FPS", (int)roundf(io.Framerate));
   ImGui::End();
 }

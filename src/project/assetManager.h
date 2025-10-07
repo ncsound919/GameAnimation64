@@ -4,6 +4,7 @@
 */
 #pragma once
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "../renderer/texture.h"
@@ -30,6 +31,8 @@ namespace Project
         IMAGE,
         AUDIO,
         MODEL_3D,
+        CODE,
+        PREFAB
       };
 
       struct AssetConf
@@ -56,14 +59,23 @@ namespace Project
     private:
       Project *project;
       std::vector<Entry> entries{};
+      std::vector<Entry> entriesScript{};
+
+      std::string defaultScript{};
 
     public:
-      AssetManager(Project *pr) : project{pr} {}
+      std::unordered_map<uint64_t, int> entriesMap{};
+      std::unordered_map<uint64_t, int> entriesMapScript{};
+
+      AssetManager(Project *pr);
 
       void reload();
 
       [[nodiscard]] const std::vector<Entry>& getEntries() const {
         return entries;
+      }
+      [[nodiscard]] const std::vector<Entry>& getScriptEntries() const {
+        return entriesScript;
       }
 
       Entry* getEntryByUUID(uint64_t uuid) {
@@ -76,5 +88,7 @@ namespace Project
       }
 
       void save();
+
+      void createScript(const std::string &name);
   };
 }
