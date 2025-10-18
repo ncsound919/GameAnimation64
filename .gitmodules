@@ -16,3 +16,6 @@
 [submodule "vendored/ImGuizmo"]
 	path = vendored/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "vendored/tiny3d"]
+	path = vendored/tiny3d
+	url = https://github.com/HailToDodongo/tiny3d.git

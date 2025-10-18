@@ -8,6 +8,7 @@
 #include <vector>
 #include "../utils/codeParser.h"
 #include "../renderer/texture.h"
+#include "tiny3d/tools/gltf_importer/src/structs.h"
 
 namespace Project
 {
@@ -53,6 +54,7 @@ namespace Project
         std::string path{};
         FileType type{};
         Renderer::Texture *texture{nullptr};
+        T3DMData t3dmData{};
         AssetConf conf{};
         Utils::CPP::Struct params{};
       };

@@ -21,12 +21,14 @@
 #include "renderer/scene.h"
 #include "renderer/shader.h"
 #include "SDL3_image/SDL_image.h"
+#include "tiny3d/tools/gltf_importer/src/structs.h"
 #include "utils/filePicker.h"
 #include "utils/logger.h"
 #include "utils/proc.h"
 
 constinit Context ctx{};
 constinit SDL_GPUSampler *texSamplerRepeat{nullptr};
+constinit Config config;
 
 namespace {
 

@@ -67,5 +67,15 @@ void Editor::AssetInspector::draw() {
       ImGui::Image(ImTextureRef(asset->texture->getGPUTex()), asset->texture->getSize(4.0f));
       ImGui::Text("%dx%dpx", asset->texture->getWidth(), asset->texture->getHeight());
     }
+    if (asset->type == FileType::MODEL_3D) {
+      uint32_t triCount = 0;
+      for (auto &model : asset->t3dmData.models) {
+        triCount += model.triangles.size();
+      }
+      ImGui::Text("Meshes: %d", static_cast<int>(asset->t3dmData.models.size()));
+      ImGui::Text("Triangles: %d", triCount);
+      ImGui::Text("Bones: %d", static_cast<int>(asset->t3dmData.skeletons.size()));
+      ImGui::Text("Animations: %d", static_cast<int>(asset->t3dmData.animations.size()));
+    }
   }
 }

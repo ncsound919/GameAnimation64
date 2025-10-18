@@ -23,6 +23,29 @@ add_executable(p64editor src/main.cpp
         vendored/SHA256/src/SHA256.cpp
         vendored/SHA256/include/SHA256.h
 
+        # tiny3d gltf converter
+        vendored/tiny3d/tools/gltf_importer/src/parser.cpp
+        vendored/tiny3d/tools/gltf_importer/src/parser/materialParser.cpp
+        vendored/tiny3d/tools/gltf_importer/src/parser/boneParser.cpp
+        vendored/tiny3d/tools/gltf_importer/src/parser/nodeParser.cpp
+        vendored/tiny3d/tools/gltf_importer/src/optimizer/meshOptimizer.cpp
+        vendored/tiny3d/tools/gltf_importer/src/optimizer/meshBVH.cpp
+        vendored/tiny3d/tools/gltf_importer/src/parser/animParser.cpp
+        vendored/tiny3d/tools/gltf_importer/src/converter/meshConverter.cpp
+        vendored/tiny3d/tools/gltf_importer/src/converter/animConverter.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/lodepng.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/allocator.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/indexcodec.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/indexgenerator.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/simplifier.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/stripifier.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/spatialorder.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/vcacheanalyzer.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/meshopt/vcacheoptimizer.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/tristrip/connectivity_graph.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/tristrip/policy.cpp
+        vendored/tiny3d/tools/gltf_importer/src/lib/tristrip/tri_stripper.cpp
+
         # imgui
         vendored/imgui/backends/imgui_impl_sdl3.cpp
         vendored/imgui/backends/imgui_impl_sdl3.h
@@ -134,6 +157,7 @@ target_include_directories(p64editor PRIVATE
     vendored/ImViewGuizmo
     vendored/glm
     vendored/ImGuizmo
+    vendored/tiny3d/tools/gltf_importer/src/lib
 )
 
 # Link to the actual SDL3 library.
