@@ -4,6 +4,7 @@
 */
 #pragma once
 #include "mesh.h"
+#include "texture.h"
 #include "uniforms.h"
 #include "tiny3d/tools/gltf_importer/src/structs.h"
 
@@ -21,6 +22,9 @@ namespace Renderer
         UniformN64Material material{};
 
         SDL_GPUTextureSamplerBinding texBindings[2]{};
+
+        std::weak_ptr<Renderer::Texture> refTex0{};
+        std::weak_ptr<Renderer::Texture> refTex1{};
       };
     private:
 

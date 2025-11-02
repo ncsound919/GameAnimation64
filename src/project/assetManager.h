@@ -72,7 +72,7 @@ namespace Project
       std::array<std::vector<Entry>, static_cast<size_t>(FileType::_SIZE)> entries{};
 
       std::string defaultScript{};
-      Renderer::Texture fallbackTex;
+      std::shared_ptr<Renderer::Texture> fallbackTex{};
 
       void reloadEntry(Entry &entry, const std::string &path);
 
@@ -126,7 +126,7 @@ namespace Project
         return nullptr;
       }
 
-      const Renderer::Texture &getFallbackTexture() {
+      const std::shared_ptr<Renderer::Texture> &getFallbackTexture() {
         return fallbackTex;
       }
 

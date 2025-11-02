@@ -57,9 +57,10 @@ std::string Project::AssetManager::AssetConf::serialize() const {
 }
 
 Project::AssetManager::AssetManager(Project* pr)
-  : project{pr}, fallbackTex{ctx.gpu, "data/img/fallback.png"}
+  : project{pr}
 {
   defaultScript = Utils::FS::loadTextFile("data/scripts/default.cpp");
+  fallbackTex = std::make_shared<Renderer::Texture>(ctx.gpu, "data/img/fallback.png");
 }
 
 Project::AssetManager::~AssetManager() {

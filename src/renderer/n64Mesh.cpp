@@ -23,29 +23,35 @@ void Renderer::N64Mesh::fromT3DM(const T3DMData &t3dmData, Project::AssetManager
   parts.resize(t3dmData.models.size());
   auto part = parts.begin();
 
-  auto fallbackTex = assetManager.getFallbackTexture().getGPUTex();
-
   uint16_t idx = 0;
   for (auto &model : t3dmData.models)
   {
+    part->refTex0 = assetManager.getFallbackTexture();
+    part->refTex1 = part->refTex0;
+
     part->indicesOffset = mesh.indices.size();
     part->indicesCount = model.triangles.size() * 3;
 
     N64Material::convert(*part, model.material);
 
-    part->texBindings[0].texture = fallbackTex;
+    part->texBindings[0].texture = part->refTex0.lock()->getGPUTex();
     part->texBindings[0].sampler = texSamplerRepeat;
-    part->texBindings[1].texture = fallbackTex;
-    part->texBindings[1].sampler = texSamplerRepeat;
+    part->texBindings[1] = part->texBindings[0];
 
     if (!model.material.texA.texPath.empty()) {
       auto texEntry = assetManager.getByPath(model.material.texA.texPath);
-      if (texEntry)part->texBindings[0].texture = texEntry->texture->getGPUTex();
+      if (texEntry) {
+        part->texBindings[0].texture = texEntry->texture->getGPUTex();
+        part->refTex0 = texEntry->texture;
+      }
     }
 
     if (!model.material.texB.texPath.empty()) {
       auto texEntry = assetManager.getByPath(model.material.texB.texPath);
-      if (texEntry)part->texBindings[1].texture = texEntry->texture->getGPUTex();
+      if (texEntry) {
+        part->texBindings[1].texture = texEntry->texture->getGPUTex();
+        part->refTex1 = texEntry->texture;
+      }
     }
 
     //model.material.colorCombiner
@@ -91,7 +97,13 @@ void Renderer::N64Mesh::draw(SDL_GPURenderPass* pass, SDL_GPUCommandBuffer *cmdB
 {
   if (!scene)return;
 
-  for (auto &part : parts) {
+  for (auto &part : parts)
+  {
+    if(part.refTex1.expired() || part.refTex0.expired()) {
+      loaded = false;
+      return;
+    }
+
     uniforms.mat = part.material;
 
     // @TODO: move out
