@@ -128,6 +128,8 @@ int main(int argc, char** argv)
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+  // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
   ImGui::applyTheme();
   ImGui::loadFonts(main_scale);
 

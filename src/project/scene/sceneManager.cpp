@@ -6,6 +6,9 @@
 #include "../project.h"
 #include <filesystem>
 
+#include "../../utils/fs.h"
+#include "../../utils/json.h"
+
 namespace
 {
   std::string getScenePath(Project::Project *project) {
@@ -28,8 +31,27 @@ void Project::SceneManager::reload()
     if (entry.is_directory()) {
       auto path = entry.path();
       auto name = path.filename().string();
+
       try {
-        int id = std::stoi(name);
+        auto sceneJsonPath = path / "scene.json";
+
+        auto doc = Utils::JSON::loadFile(sceneJsonPath);
+        if (doc.is_object())
+        {
+          auto docConf = doc["conf"];
+          auto scName = Utils::JSON::readString(docConf, "name");
+          if(!scName.empty()) {
+            name = Utils::JSON::readString(docConf, "name");
+          }
+        }
+      } catch(std::exception &e) {
+        printf("Failed to load scene json: %s\n", e.what());
+      } catch(...) {
+        // ignore
+      }
+
+      try {
+        int id = std::stoi(path.filename().string());
         entries.push_back({id, name});
       } catch(...) {
         // ignore
@@ -37,6 +59,10 @@ void Project::SceneManager::reload()
     }
   }
 
+  // sort by id
+  std::ranges::sort(entries, [](const SceneEntry &a, const SceneEntry &b) {
+    return a.id < b.id;
+  });
 }
 
 Project::SceneManager::~SceneManager() {

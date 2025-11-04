@@ -80,9 +80,7 @@ void P64::Scene::update(float deltaTime) {
 
   lighting.reset();
 
-  for(auto &cam : cameras) {
-    cam->update(deltaTime);
-  }
+  camMain = cameras[0];
 
   for(auto obj : objects)
   {
@@ -95,6 +93,10 @@ void P64::Scene::update(float deltaTime) {
       char* dataPtr = (char*)obj + compRefs[i].offset;
       compDef.update(*obj, dataPtr);
     }
+  }
+
+  for(auto &cam : cameras) {
+    cam->update(deltaTime);
   }
 
   for(auto &obj : pendingObjDelete)

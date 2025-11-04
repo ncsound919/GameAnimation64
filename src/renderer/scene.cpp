@@ -131,6 +131,14 @@ void Renderer::Scene::draw()
   SDL_GPURenderPass* renderPass2D = SDL_BeginGPURenderPass(command_buffer, &targetInfo2D, 1, nullptr);
   ImGui_ImplSDLGPU3_RenderDrawData(drawData, command_buffer, renderPass2D);
   SDL_EndGPURenderPass(renderPass2D);
+
+  // Update and Render additional Platform Windows
+  if(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+  {
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+  }
+
   // Submit the command buffer
   SDL_SubmitGPUCommandBuffer(command_buffer);
 

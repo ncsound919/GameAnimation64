@@ -19,7 +19,7 @@ namespace P64::Script::C3AF5D870988CBC0
       debugf("Arg: Scene-Id: %ld\n", data->sceneId);
       SceneManager::load(data->sceneId);
     }
-
+/*
     float speed = 0.125f;
     auto &cam = SceneManager::getCurrent().getActiveCamera();
     if (held.z) {
@@ -34,7 +34,7 @@ namespace P64::Script::C3AF5D870988CBC0
 
 
     data->speed += 0.1f;
-
+*/
     rdpq_set_env_color({0x80, 0x80, 0x80, 0x80});
   }
 
