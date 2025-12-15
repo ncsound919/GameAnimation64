@@ -11,7 +11,7 @@ namespace Build
   void buildScene(Project::Project &project, const Project::SceneEntry &scene, SceneCtx &ctx);
   void buildScripts(Project::Project &project, SceneCtx &sceneCtx);
   void buildGlobalScripts(Project::Project &project, SceneCtx &sceneCtx);
-  void buildT3DMAssets(Project::Project &project, SceneCtx &sceneCtx);
+  bool buildT3DMAssets(Project::Project &project, SceneCtx &sceneCtx);
 
   bool buildProject(std::string path);
 }

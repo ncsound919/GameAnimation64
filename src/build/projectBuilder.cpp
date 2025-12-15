@@ -156,7 +156,11 @@ bool Build::buildProject(std::string path)
   }
 
   // T3DM Models & Collision
-  buildT3DMAssets(project, sceneCtx);
+  bool success = buildT3DMAssets(project, sceneCtx);
+  if(!success) {
+    Utils::Logger::log("T3DM Asset build failed!", Utils::Logger::LEVEL_ERROR);
+    return false;
+  }
 
   // Makefile
   auto makefile = Utils::FS::loadTextFile("data/build/baseMakefile.mk");
@@ -180,12 +184,12 @@ bool Build::buildProject(std::string path)
   }
 
   // Build
-  bool res = Utils::Proc::runSyncLogged("make -C \"" + path + "\" -j8");
+  success = Utils::Proc::runSyncLogged("make -C \"" + path + "\" -j8");
 
-  if(res) {
+  if(success) {
     Utils::Logger::log("Build done!");
   } else {
     Utils::Logger::log("Build failed!", Utils::Logger::LEVEL_ERROR);
   }
-  return res;
+  return success;
 }

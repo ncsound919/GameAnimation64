@@ -9,6 +9,7 @@
 #include "../utils/binaryFile.h"
 #include "../utils/fs.h"
 #include "../utils/logger.h"
+#include "../utils/proc.h"
 #include "tiny3d/tools/gltf_importer/src/parser.h"
 
 namespace fs = std::filesystem;
@@ -18,13 +19,13 @@ namespace
 
 }
 
-void Build::buildT3DMAssets(Project::Project &project, SceneCtx &sceneCtx)
+bool Build::buildT3DMAssets(Project::Project &project, SceneCtx &sceneCtx)
 {
+  fs::path mkAsset = fs::path{project.conf.pathN64Inst} / "bin" / "mkasset";
   auto &models = sceneCtx.project->getAssets().getTypeEntries(Project::AssetManager::FileType::MODEL_3D);
   for (auto &model : models)
   {
-    Utils::Logger::log("Building 3D Model Asset: " + model.path + " | rom: " + model.outPath);
-
+    Utils::Logger::log("Building T3DM: " + model.path + " | rom: " + model.outPath);
     T3DM::config = {
       .globalScale = (float)model.conf.baseScale,
       .animSampleRate = 60,
@@ -39,6 +40,19 @@ void Build::buildT3DMAssets(Project::Project &project, SceneCtx &sceneCtx)
     auto t3dm = T3DM::parseGLTF(model.path.c_str());
     auto projectPath = fs::path{project.getPath()};
     auto t3dmPath = projectPath / model.outPath;
+    auto t3dmDir = t3dmPath.parent_path();
     T3DM::writeT3DM(t3dm, t3dmPath.c_str(), projectPath, {});
+
+    int compr = (int)model.conf.compression - 1;
+    if(compr < 0)compr = 1; // @TODO: pull default compression level
+
+    std::string cmd = mkAsset.string() + " -c " + std::to_string(compr);
+    cmd += " -o " + t3dmDir.string();
+    cmd += " " + t3dmPath.string();
+
+    if(!Utils::Proc::runSyncLogged(cmd)) {
+      return false;
+    }
   }
+  return true;
 }
