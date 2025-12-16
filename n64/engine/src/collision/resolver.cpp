@@ -10,7 +10,6 @@ using namespace P64;
 namespace
 {
   namespace TriType = Coll::TriType;
-  namespace Mask = Coll::Mask;
 
   inline float copySign(float val, float sign) {
     return sign < 0 ? -val : val;
@@ -18,12 +17,9 @@ namespace
 
   bool separateBCS(Coll::BCS &bcsA, Coll::BCS &bcsB, const fm_vec3_t &dir, float dist2, float distTotal)
   {
-
     if(dist2 > (distTotal*distTotal))return false;
 
-    bool solidA = bcsA.maskWrite & Mask::SOLID;
-    bool solidB = bcsB.maskWrite & Mask::SOLID;
-    if(solidA && solidB)
+    if(bcsA.isSolid() && bcsB.isSolid())
     {
       float dist = sqrtf(fmaxf(dist2, 0.0001f));
       auto dirNorm = (dir /  dist);
@@ -84,8 +80,8 @@ bool Coll::boxVsBox(Coll::BCS &collA, Coll::BCS &collB) {
   if(posDiffAbs.y > combExtend.y)return false;
   if(posDiffAbs.z > combExtend.z)return false;
 
-  bool solidA = collA.maskWrite & Mask::SOLID;
-  bool solidB = collB.maskWrite & Mask::SOLID;
+  bool solidA = collA.isSolid();
+  bool solidB = collB.isSolid();
 
   bool isFixedA = collA.flags & Coll::BCSFlags::FIXED_XYZ;
   bool isFixedB = collB.flags & Coll::BCSFlags::FIXED_XYZ;

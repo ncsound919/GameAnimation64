@@ -20,20 +20,12 @@ namespace Coll
   }
 
   namespace BCSFlags {
-    constexpr uint8_t BOUNCY    = 1 << 0;
-    constexpr uint8_t FIXED_XYZ = 1 << 1;
-    constexpr uint8_t SHAPE_BOX = 1 << 2;
-  }
+    constexpr uint8_t SHAPE_BOX      = 1 << 0;
+    constexpr uint8_t SHAPE_CYLINDER = 1 << 1; // @TODO
 
-  namespace Mask {
-    constexpr uint8_t TRI_MESH    = 1 << 0;
-    constexpr uint8_t PLAYER      = 1 << 1;
-    constexpr uint8_t ATTACK      = 1 << 2;
-    constexpr uint8_t BREAKABLE   = 1 << 3;
-    constexpr uint8_t COLLECTABLE = 1 << 4;
-    constexpr uint8_t SOLID       = 1 << 5;
-    constexpr uint8_t HEAVY       = 1 << 6;
-    constexpr uint8_t UNUSED7     = 1 << 7;
+    constexpr uint8_t TRIGGER   = 1 << 2;
+    constexpr uint8_t BOUNCY    = 1 << 3;
+    constexpr uint8_t FIXED_XYZ = 1 << 4;
   }
 
   struct IVec3 {
@@ -55,7 +47,7 @@ namespace Coll
     fm_vec3_t center{};
     fm_vec3_t halfExtend{};
     fm_vec3_t velocity{};
-    //std::function<void(BCS&)> callback{};
+
     uint8_t maskRead{0};
     uint8_t maskWrite{0};
     uint8_t flags{0};
@@ -66,6 +58,14 @@ namespace Coll
     }
     [[nodiscard]] constexpr float getRadius2() const {
       return halfExtend.y * halfExtend.y;
+    }
+
+    [[nodiscard]] constexpr bool isTrigger() const {
+      return (flags & BCSFlags::TRIGGER);
+    }
+
+    [[nodiscard]] constexpr bool isSolid() const {
+      return !isTrigger();
     }
 
     [[nodiscard]] fm_vec3_t getMinAABB() const {

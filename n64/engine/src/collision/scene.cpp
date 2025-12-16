@@ -119,7 +119,8 @@ void Coll::Scene::update(float deltaTime)
     auto &bcsA = collBCS[s];
 
     // Static/Triangle mesh collision
-    bool checkColl = bcsA->maskRead & Mask::TRI_MESH;
+    // @TODO: use r/w mask
+    bool checkColl = true;//bcsA->maskRead & Mask::TRI_MESH;
 
     if(checkColl) {
       auto res = vsBCS(*bcsA, bcsA->velocity, deltaTime);
@@ -283,7 +284,7 @@ void Coll::Scene::debugDraw(bool showMesh, bool showSpheres)
       if(sphere->maskWrite == 0)continue;
 
       color_t col{0xFF, 0xFF, 0x00, 0xFF};
-      if(sphere->maskWrite & Mask::SOLID) {
+      if(sphere->isSolid()) {
         col = color_t{0x44, 0x44, 0x44, 0xFF};
         bool isFloor = sphere->hitTriTypes & TriType::FLOOR;
         bool isWall = sphere->hitTriTypes & TriType::WALL;
