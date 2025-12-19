@@ -39,10 +39,28 @@ Project::Scene::Scene(int id_, const std::string &projectPath)
 
   deserialize(Utils::FS::loadTextFile(scenePath + "/scene.json"));
 
+  nextUUID = 1;
+  for (const auto& [uuid, obj] : objectsMap) {
+    if (obj->id >= nextUUID) {
+      nextUUID = obj->id + 1;
+    }
+  }
+
   root.id = 0;
   root.name = "Scene";
   root.uuid = Utils::Hash::sha256_64bit(root.name);
   root.isGroup = true;
+}
+
+std::shared_ptr<Project::Object> Project::Scene::addObject(std::string &objJson)
+{
+  auto obj = std::make_shared<Object>(root);
+  obj->deserialize(*this, Utils::JSON::load(objJson));
+  obj->id = nextUUID++;
+  obj->name += " ("+std::to_string(obj->id)+")";
+  obj->uuid = Utils::Hash::sha256_64bit(obj->name + std::to_string(rand()));
+  obj->pos += glm::vec3{10.0f, 0.0f, 0.0f};
+  return addObject(root, obj);
 }
 
 std::shared_ptr<Project::Object> Project::Scene::addObject(Object &parent) {

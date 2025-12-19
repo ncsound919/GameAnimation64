@@ -16,6 +16,8 @@ struct Context
   SDL_Window* window{nullptr};
   SDL_GPUDevice *gpu{nullptr};
 
+  std::string clipboard{};
+
   // Editor state
   uint64_t selAssetUUID{0};
   uint32_t selObjectUUID{0};

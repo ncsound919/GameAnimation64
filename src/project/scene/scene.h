@@ -44,6 +44,7 @@ namespace Project
       Object& getRootObject() { return root; }
       std::unordered_map<uint32_t, std::shared_ptr<Object>> objectsMap{};
 
+      std::shared_ptr<Object> addObject(std::string &objJson);
       std::shared_ptr<Object> addObject(Object &parent);
       std::shared_ptr<Object> addObject(Object &parent, std::shared_ptr<Object> obj);
       void removeObject(Object &obj);

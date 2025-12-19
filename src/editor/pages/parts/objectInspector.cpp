@@ -100,6 +100,9 @@ void Editor::ObjectInspector::draw() {
     ImGui::OpenPopup("CompSelect");
   }
 
+  auto objStr = obj->serialize();
+  ImGui::TextWrapped(objStr.c_str());
+
   if (ImGui::BeginPopupContextItem("CompSelect"))
   {
     for (auto &comp : Project::Component::TABLE) {

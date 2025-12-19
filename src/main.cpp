@@ -218,6 +218,27 @@ int main(int argc, char** argv)
       return true;
     });
 
+    Editor::Actions::registerAction(Editor::Actions::Type::COPY, [](const std::string&) {
+      if(!ctx.project)return false;
+      auto scene = ctx.project->getScenes().getLoadedScene();
+      if(!scene)return false;
+
+      auto obj = scene->getObjectByUUID(ctx.selObjectUUID);
+      if(!obj)return false;
+      ctx.clipboard = obj->serialize();
+
+      return true;
+    });
+
+    Editor::Actions::registerAction(Editor::Actions::Type::PASTE, [](const std::string&) {
+      if(!ctx.project || ctx.clipboard.empty())return false;
+      auto scene = ctx.project->getScenes().getLoadedScene();
+      if(!scene)return false;
+      auto obj = scene->addObject(ctx.clipboard);
+      ctx.selObjectUUID = obj->uuid;
+      return true;
+    });
+
     Utils::Logger::clear();
 
     // TEST:
@@ -250,8 +271,17 @@ int main(int argc, char** argv)
 
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
-          if ((event.key.mod & SDL_KMOD_CTRL) && event.key.key == SDLK_S) {
-            if (ctx.project)ctx.project->save();
+          if(!ImGui::GetIO().WantTextInput)
+          {
+            if ((event.key.mod & SDL_KMOD_CTRL) && event.key.key == SDLK_C) {
+              Editor::Actions::call(Editor::Actions::Type::COPY);
+            }
+            if ((event.key.mod & SDL_KMOD_CTRL) && event.key.key == SDLK_V) {
+              Editor::Actions::call(Editor::Actions::Type::PASTE);
+            }
+            if ((event.key.mod & SDL_KMOD_CTRL) && event.key.key == SDLK_S) {
+              if (ctx.project)ctx.project->save();
+            }
           }
 
           if (!(event.key.mod & SDL_KMOD_CTRL) && event.key.key == SDLK_F11) {

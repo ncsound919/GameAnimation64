@@ -321,23 +321,26 @@ void Editor::Viewport3D::draw()
     );
   }
 
-  if (newMouseDown) {
-    glm::vec3 moveDir = {0,0,0};
-    if (ImGui::IsKeyDown(ImGuiKey_W))moveDir.z = -moveSpeed;
-    if (ImGui::IsKeyDown(ImGuiKey_S))moveDir.z = moveSpeed;
-    if (ImGui::IsKeyDown(ImGuiKey_A))moveDir.x = -moveSpeed;
-    if (ImGui::IsKeyDown(ImGuiKey_D))moveDir.x = moveSpeed;
+  if(!ImGui::GetIO().WantTextInput)
+  {
+    if (newMouseDown) {
+      glm::vec3 moveDir = {0,0,0};
+      if (ImGui::IsKeyDown(ImGuiKey_W))moveDir.z = -moveSpeed;
+      if (ImGui::IsKeyDown(ImGuiKey_S))moveDir.z = moveSpeed;
+      if (ImGui::IsKeyDown(ImGuiKey_A))moveDir.x = -moveSpeed;
+      if (ImGui::IsKeyDown(ImGuiKey_D))moveDir.x = moveSpeed;
 
-    if (ImGui::IsKeyDown(ImGuiKey_Q))moveDir.y = -moveSpeed;
-    if (ImGui::IsKeyDown(ImGuiKey_E))moveDir.y = moveSpeed;
+      if (ImGui::IsKeyDown(ImGuiKey_Q))moveDir.y = -moveSpeed;
+      if (ImGui::IsKeyDown(ImGuiKey_E))moveDir.y = moveSpeed;
 
-    if(moveDir != glm::vec3{0,0,0}) {
-      camera.velocity = camera.rot * moveDir;
+      if(moveDir != glm::vec3{0,0,0}) {
+        camera.velocity = camera.rot * moveDir;
+      }
+    } else {
+      if (ImGui::IsKeyDown(ImGuiKey_G))gizmoOp = 0;
+      if (ImGui::IsKeyDown(ImGuiKey_R))gizmoOp = 1;
+      if (ImGui::IsKeyDown(ImGuiKey_S))gizmoOp = 2;
     }
-  } else {
-    if (ImGui::IsKeyDown(ImGuiKey_G))gizmoOp = 0;
-    if (ImGui::IsKeyDown(ImGuiKey_R))gizmoOp = 1;
-    if (ImGui::IsKeyDown(ImGuiKey_S))gizmoOp = 2;
   }
 
   if (isMouseHover && !ImViewGuizmo::IsOver())
