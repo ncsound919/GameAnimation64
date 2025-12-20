@@ -124,6 +124,11 @@ namespace Project::Component::Code
             name = metaName->second;
           }
 
+          if(data.args.find(name) == data.args.end()) {
+            data.args[name] = PropString{name, field.defaultValue};
+            data.args[name].id = Utils::Hash::randomU64();
+          }
+
           if(field.type == Utils::DataType::ASSET_SPRITE)
           {
             const auto &assets = ctx.project->getAssets().getTypeEntries(AssetManager::FileType::IMAGE);

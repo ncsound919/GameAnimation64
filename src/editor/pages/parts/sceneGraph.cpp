@@ -99,22 +99,13 @@ namespace
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 3.f));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
 
-    auto nameID = obj.name;
+    std::string nameID{};
     if(obj.uuidPrefab.value) {
-      nameID += " " ICON_MDI_PACKAGE_VARIANT_CLOSED;
+      nameID += ICON_MDI_PACKAGE_VARIANT_CLOSED " ";
     }
-    nameID += "##" + std::to_string(obj.uuid);
-/*
-    float iconAreaWidth = ImGui::GetStyle().WindowPadding.x + 2 * 12.0f + ImGui::GetStyle().ItemInnerSpacing.x;
-    float available = ImGui::GetContentRegionAvail().x;
+    nameID += obj.name + "##" + std::to_string(obj.uuid);
 
-    ImVec2 cursor = ImGui::GetCursorScreenPos();
-    ImVec2 clipEnd = ImVec2(cursor.x + available - iconAreaWidth, cursor.y + 32);
-    ImGui::PushClipRect(cursor, clipEnd, true);
-*/
     bool isOpen = ImGui::TreeNodeEx(nameID.c_str(), flag);
-
-    //ImGui::PopClipRect();
     ImGui::PopStyleVar(2);
 
     bool nodeIsClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
@@ -193,7 +184,7 @@ namespace
         }
 
         if (obj.parent) {
-          if (ImGui::MenuItem(ICON_MDI_PACKAGE_VARIANT_CLOSED_PLUS " To Prefab")) {
+          if (!obj.isPrefabInstance() && ImGui::MenuItem(ICON_MDI_PACKAGE_VARIANT_CLOSED_PLUS " To Prefab")) {
             scene.createPrefabFromObject(obj.uuid);
           }
 

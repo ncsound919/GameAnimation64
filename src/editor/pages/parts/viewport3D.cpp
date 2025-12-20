@@ -114,7 +114,13 @@ bool ConnectedToggleButton(const char* text, bool active, bool first, bool last,
     {
       if(!child->enabled)continue;
 
-      for(auto &comp : child->components) {
+      auto srcObj = child.get();
+      if(child->isPrefabInstance()) {
+        auto prefab = ctx.project->getAssets().getPrefabByUUID(child->uuidPrefab.value);
+        if(prefab)srcObj = &prefab->obj;
+      }
+
+      for(auto &comp : srcObj->components) {
         callback(*child, comp);
       }
 

@@ -77,19 +77,20 @@ namespace Project::Component::CollBody
   void draw3D(Object& obj, Entry &entry, Editor::Viewport3D &vp, SDL_GPUCommandBuffer* cmdBuff, SDL_GPURenderPass* pass)
   {
     Data &data = *static_cast<Data*>(entry.data.get());
+    auto &objPos = obj.pos.resolve(obj.propOverrides);
 
     if(data.type == 0) // Box
     {
-     glm::vec3 center = obj.pos.value + data.offset;
-     glm::vec3 halfExt = data.halfExtend;
+      glm::vec3 center = objPos + data.offset;
+      glm::vec3 halfExt = data.halfExtend;
 
-     glm::vec4 aabbCol{0.0f, 1.0f, 1.0f, 1.0f};
+      glm::vec4 aabbCol{0.0f, 1.0f, 1.0f, 1.0f};
 
-     Utils::Mesh::addLineBox(*vp.getLines(), center, halfExt, aabbCol);
-     Utils::Mesh::addLineBox(*vp.getLines(), center, halfExt + 0.002f, aabbCol);
+      Utils::Mesh::addLineBox(*vp.getLines(), center, halfExt, aabbCol);
+      Utils::Mesh::addLineBox(*vp.getLines(), center, halfExt + 0.002f, aabbCol);
     } else if(data.type == 1) // Sphere
     {
-      Utils::Mesh::addLineSphere(*vp.getLines(), obj.pos.value + data.offset, data.halfExtend, glm::vec4{0.0f, 1.0f, 1.0f, 1.0f});
+      Utils::Mesh::addLineSphere(*vp.getLines(), objPos + data.offset, data.halfExtend, glm::vec4{0.0f, 1.0f, 1.0f, 1.0f});
     }
   }
 }
