@@ -94,7 +94,7 @@ namespace Project::Component::Light
   void draw(Object &obj, Entry &entry) {
     Data &data = *static_cast<Data*>(entry.data.get());
 
-    if (ImTable::start("Comp"))
+    if (ImTable::start("Comp", &obj))
     {
       ImTable::add("Name", entry.name);
       ImTable::addComboBox("Type", data.type, LIGHT_TYPES, LIGHT_TYPE_COUNT);

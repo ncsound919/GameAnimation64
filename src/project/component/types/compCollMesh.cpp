@@ -68,7 +68,7 @@ namespace Project::Component::CollMesh
     auto &assets = ctx.project->getAssets();
     auto &modelList = assets.getTypeEntries(AssetManager::FileType::MODEL_3D);
 
-    if (ImTable::start("Comp")) {
+    if (ImTable::start("Comp", &obj)) {
       ImTable::add("Name", entry.name);
       ImTable::add("Model");
       //ImGui::InputScalar("##UUID", ImGuiDataType_U64, &data.scriptUUID);

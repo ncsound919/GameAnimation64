@@ -57,7 +57,7 @@ namespace Project::Component::CollBody
   {
     Data &data = *static_cast<Data*>(entry.data.get());
 
-    if (ImTable::start("Comp")) {
+    if (ImTable::start("Comp", &obj)) {
       ImTable::add("Name", entry.name);
 
       ImTable::addComboBox("Type", data.type, {"Box", "Sphere", "Cylinder"});
