@@ -143,6 +143,24 @@ namespace P64
         return static_cast<T*>(renderPipeline);
       }
 
+      /**
+       * Spawns an object from a prefab into the scene.
+       * Note that this will not happen immediately, but at the start of the next frame.
+       * The returned value is the ID of the new object, which becomes valid when it spawns.
+       *
+       * @param prefabIdx Index of the prefab asset, use _asset suffix
+       * @param pos initial pos (default origin)
+       * @param scale initial scale (default 1)
+       * @param rot initial rotation (none)
+       * @return ID of the new object
+       */
+      uint16_t addObject(
+        uint32_t prefabIdx,
+        const fm_vec3_t &pos = {0,0,0},
+        const fm_vec3_t &scale = {1,1,1},
+        const fm_quat_t &rot = {0,0,0,1}
+      );
+
       void removeObject(Object &obj);
 
       Object* getObjectById(uint16_t objId) const;

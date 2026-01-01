@@ -18,13 +18,13 @@ namespace P64::PTX
         uint8_t noRng{false};
       };
 
-    private:
       System systems[6];
+      float simTimer = 0.0f;
 
+    private:
       sprite_t *sprite{};
       rspq_block_t *setupDPL{};
       float animTimer = 0.0f;
-      float simTimer = 0.0f;
       uint16_t mirrorPt = 32;
       color_t color{};
       Conf conf{};
@@ -45,8 +45,6 @@ namespace P64::PTX
 
       void draw(float deltaTime);
       void clear();
-
-      void simulateDust(float deltaTime);
 
       void debugDraw();
   };

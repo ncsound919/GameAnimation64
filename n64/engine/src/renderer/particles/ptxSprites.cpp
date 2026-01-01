@@ -157,37 +157,6 @@ void P64::PTX::Sprites::clear() {
   }
 }
 
-void P64::PTX::Sprites::simulateDust(float deltaTime)
-{
-  simTimer += deltaTime;
-  bool isStep = simTimer > 0.75f;
-  if(isStep)simTimer = 0;
-
-  for(auto &system : systems)
-  {
-    for(uint32_t i=0; i<system.count; ++i) {
-      auto pos = tpx_buffer_get_pos(system.particles, i);
-      int8_t *size = tpx_buffer_get_size(system.particles, i);
-      color_t *col = (color_t *)tpx_buffer_get_rgba(system.particles, i);
-
-      if(isStep) {
-        pos[1] += 1;
-      }
-      size[0] -= 1;
-
-      if(col->r > 1) {
-        col->r -= 1;
-        col->g -= 1;
-        col->b -= 1;
-      }
-
-      if(pos[1] > 126 || size[0] <= 0) {
-        system.removeParticle(i--);
-      }
-    }
-  }
-}
-
 void P64::PTX::Sprites::debugDraw() {
   for(auto &s : systems) {
     if(s.count) {
