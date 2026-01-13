@@ -24,4 +24,4 @@
 	url = https://github.com/DragonMinded/libdragon.git
 [submodule "vendored/ImNodeFlow"]
 	path = vendored/ImNodeFlow
-	url = git@github.com:HailToDodongo/ImNodeFlow.git
+	url = https://github.com/HailToDodongo/ImNodeFlow.git
