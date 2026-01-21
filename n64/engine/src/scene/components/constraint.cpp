@@ -37,14 +37,14 @@ namespace P64::Comp
     {
       auto &sc = obj.getScene();
       auto refObj = sc.getObjectById(data->refObjId);
-      debugf("Obj: %d Constraint initDelete: refObjId %d %p\n", obj.id, data->refObjId, refObj);
+      //debugf("Obj: %d Constraint initDelete: refObjId %d %p\n", obj.id, data->refObjId, refObj);
       if(refObj) {
         data->localRefPos = refObj->intoLocalSpace(obj.pos);
-        debugf("localRefPos: %f %f %f\n",
+        /*debugf("localRefPos: %f %f %f\n",
           (double)data->localRefPos.x,
           (double)data->localRefPos.y,
           (double)data->localRefPos.z
-        );
+        );*/
       }
     }
   }

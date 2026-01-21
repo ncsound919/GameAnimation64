@@ -42,8 +42,11 @@ namespace Project::Graph::Node
         count = j.value("count", 0);
       }
 
-      void build(Utils::BinaryFile &f) override {
-        f.write<uint16_t>(count);
+      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
+        f.write<uint8_t>(memOffset);
+        memOffset += 1;
+
+        f.write<uint8_t>(count);
       }
   };
 }

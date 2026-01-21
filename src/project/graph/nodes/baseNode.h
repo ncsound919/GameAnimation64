@@ -24,6 +24,6 @@ namespace Project::Graph::Node
 
       virtual void serialize(nlohmann::json &j) = 0;
       virtual void deserialize(nlohmann::json &j) = 0;
-      virtual void build(Utils::BinaryFile &f) = 0;
+      virtual void build(Utils::BinaryFile &f, uint32_t &memOffset) = 0;
   };
 }

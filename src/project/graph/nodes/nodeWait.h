@@ -42,7 +42,7 @@ namespace Project::Graph::Node
         time = j.value("time", 0.0f);
       }
 
-      void build(Utils::BinaryFile &f) override {
+      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
         f.write<uint16_t>(time * 1000); // milliseconds
       }
   };

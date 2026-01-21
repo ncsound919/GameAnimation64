@@ -22,6 +22,7 @@ namespace P64::NodeGraph
     OBJ_EVENT = 3,
     COMPARE = 4,
     VALUE = 5,
+    REPEAT = 6,
   };
 
   struct GraphDef;
@@ -34,6 +35,7 @@ namespace P64::NodeGraph
 
       NodeDef* currNode{};
       uint16_t reg{};
+      uint8_t memory[64]{}; // @TODO: dynamic
 
     public:
       Object *object{};
@@ -42,7 +44,7 @@ namespace P64::NodeGraph
 
       explicit Instance(uint16_t assetIdx) {
         graphDef = (GraphDef*)AssetManager::getByIndex(assetIdx);
-        currNode = (NodeDef*)((char*)graphDef + 2);
+        currNode = (NodeDef*)((char*)graphDef + 4);
       }
 
       void update(float deltaTime);

@@ -16,6 +16,7 @@ namespace
     "OBJ_EVENT",
     "COMPARE",
     "VALUE",
+    "REPEAT",
   };
 }
 
@@ -40,6 +41,7 @@ namespace P64::NodeGraph
   struct GraphDef
   {
     uint16_t nodeCount;
+    uint16_t memSize;
     NodeDef start;
   };
 
@@ -53,12 +55,11 @@ namespace P64::NodeGraph
     }
 
     uint16_t *nodeData = (uint16_t*)&node->outOffsets[node->outCount];
-    //debugf(", data: %04X", *nodeData);
-    debugf("\n");
+    debugf(", data: %04X\n", *nodeData);
 
     for (uint16_t i = 0; i < node->outCount; i++) {
       auto nextNode = (NodeDef*)((uint8_t*)node + node->outOffsets[i]);
-      printNode(nextNode, level + 1);
+      //printNode(nextNode, level + 1);
     }
   };
 
@@ -68,11 +69,14 @@ void P64::NodeGraph::Instance::update(float deltaTime) {
   if(!currNode)return;
 
   uint16_t *data = currNode->getDataPtr();
+  uint8_t *dataU8 = (uint8_t*)data;
+  uint32_t outputIndex = 0;
+
+  //printNode(currNode, 0);
 
   switch(currNode->type)
   {
     case NodeType::START:
-      printNode(currNode, 0);
       break;
 
     case NodeType::WAIT:
@@ -93,10 +97,22 @@ void P64::NodeGraph::Instance::update(float deltaTime) {
         (data[2] << 16) | data[3]
       );
       break;
+    case NodeType::REPEAT:
+    {
+      auto &count = memory[dataU8[0]];
+      if(count != dataU8[1]) {
+        ++count;
+        outputIndex = 0;
+      } else {
+        outputIndex = 1;
+        count = 0;
+      }
+    }break;
+
     default:
       debugf("Unhandled node type: %d\n", (uint8_t)currNode->type);
       break;
   }
 
-  currNode = currNode->getNext(0);
+  currNode = currNode->getNext(outputIndex);
 }

@@ -23,6 +23,30 @@ namespace
     NodeCreateFunc create;
     const char* name;
   };
+
+  uint32_t getIndexLeft(ImFlow::Pin* pin)
+  {
+    auto leftNode = (Project::Graph::Node::Base*)pin->getParent();
+    auto &leftOuts = leftNode->getOuts();
+    for(size_t i = 0; i < leftOuts.size(); ++i) {
+      if(leftOuts[i].get() == pin) {
+        return static_cast<uint32_t>(i);
+      }
+    }
+    return 0;
+  }
+
+  uint32_t getIndexRight(ImFlow::Pin* pin)
+  {
+    auto rightNode = (Project::Graph::Node::Base*)pin->getParent();
+    auto &rightIns = rightNode->getIns();
+    for(size_t i = 0; i < rightIns.size(); ++i) {
+      if(rightIns[i].get() == pin) {
+        return static_cast<uint32_t>(i);
+      }
+    }
+    return 0;
+  }
 }
 
 #define TABLE_ENTRY(name) TableEntry{ \
@@ -119,19 +143,31 @@ namespace Project::Graph
     }
 
     data["links"] = nlohmann::json::array();
-    for (const auto& weakLink : graph.getLinks()) {
+    auto &links = graph.getLinks();
+    for (const auto& weakLink : links) {
       if (auto link = weakLink.lock()) {
         auto leftPin = link->left();
         auto rightPin = link->right();
+
         if (leftPin && rightPin) {
           auto leftNode = leftPin->getParent();
           auto rightNode = rightPin->getParent();
           if(leftNode && rightNode) {
+
+            // find pin in list of links to get index
+            auto &rightIns = rightNode->getIns();
+            uint32_t leftIndex = getIndexLeft(leftPin);
+            uint32_t rightIndex = getIndexRight(rightPin);
+
+            printf("Node Link: %s:%s:%d -> %s:%s:%d\n",
+              leftNode->getName().c_str(), leftPin->getName().c_str(), leftIndex,
+              rightNode->getName().c_str(), rightPin->getName().c_str(), rightIndex
+            );
             nlohmann::json jLink{};
             jLink["src"] = ((Node::Base*)leftNode)->uuid;
-            jLink["srcPort"] = 0; // TODO
+            jLink["srcPort"] = leftIndex;
             jLink["dst"] = ((Node::Base*)rightNode)->uuid;
-            jLink["dstPort"] = 0; // TODO
+            jLink["dstPort"] = rightIndex;
             data["links"].push_back(jLink);
           }
         }
@@ -147,6 +183,8 @@ namespace Project::Graph
 
     Utils::BinaryFile f{};
     f.write<uint16_t>(nodes.size());
+    f.write<uint16_t>(0); // memory size, filled later
+    uint32_t memSize = 0;
 
     // maps a node's UUID to its own position in the file
     std::unordered_map<uint64_t, uint32_t> nodeSelfPosMap{};
@@ -162,9 +200,14 @@ namespace Project::Graph
         if (leftPin && rightPin) {
           auto leftNode = (Node::Base*)leftPin->getParent();
           auto rightNode = (Node::Base*)rightPin->getParent();
-          if(leftNode && rightNode) {
-            nodeOutgoingMap[leftNode->uuid].push_back(rightNode->uuid);
+
+          uint32_t leftIndex = getIndexLeft(leftPin);
+
+          auto &e = nodeOutgoingMap[leftNode->uuid];
+          if(leftIndex >= e.size()) {
+            e.resize(leftIndex + 1, 0);
           }
+          e[leftIndex] = rightNode->uuid;
         }
       }
     }
@@ -198,7 +241,7 @@ namespace Project::Graph
         f.write<uint16_t>(0xDEAD); // next node(s), patched later
       }
 
-      p64Node->build(f);
+      p64Node->build(f, memSize);
     }
 
     // now patch in the outgoing links
@@ -216,6 +259,8 @@ namespace Project::Graph
       }
     }
 
+    f.setPos(2);
+    f.write<uint16_t>(memSize); // write memory size
     return f;
   }
 }
