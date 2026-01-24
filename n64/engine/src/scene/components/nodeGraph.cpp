@@ -26,8 +26,7 @@ namespace P64::Comp
     }
 
     new(data) NodeGraph();
-
-    data->inst = P64::NodeGraph::Instance(initData->assetIdx);
+    data->inst.load(initData->assetIdx);
     data->inst.object = &obj;
   }
 }

@@ -18,25 +18,38 @@ namespace Project::Graph::Node
     public:
       constexpr static const char* NAME = ICON_MDI_FUNCTION " Function";
 
+      void updateTitle() {
+        if(funcName.empty()) {
+          setTitle(NAME);
+        } else {
+          setTitle(ICON_MDI_FUNCTION " " + funcName + "(" + std::to_string(arg0) + ")");
+        }
+      }
+
       Func()
       {
         uuid = Utils::Hash::randomU64();
-        setTitle(NAME);
+        updateTitle();
         setStyle(std::make_shared<ImFlow::NodeStyle>(IM_COL32(90,191,93,255), ImColor(0,0,0,255), 3.5f));
 
         addIN<TypeLogic>("", ImFlow::ConnectionFilter::SameType(), PIN_STYLE_LOGIC);
         addOUT<TypeLogic>("", PIN_STYLE_LOGIC);
-        //addOUT<TypeValue>("Res", PIN_STYLE_VALUE);
+        addOUT<TypeValue>("", PIN_STYLE_VALUE);
       }
 
       void draw() override {
         //ImGui::Text("Func:");
         //ImGui::SameLine();
+        bool changed = false;
         auto textWidth  = ImGui::CalcTextSize(funcName.c_str()).x + 16;
         ImGui::SetNextItemWidth(fmaxf(textWidth, 50.0f));
-        ImGui::InputText("##FuncName", &funcName);
+        changed |= ImGui::InputText("##FuncName", &funcName);
         ImGui::SetNextItemWidth(50.f);
-        ImGui::InputScalar("Arg.", ImGuiDataType_U32, &arg0);
+        changed |= ImGui::InputScalar("Arg.", ImGuiDataType_U32, &arg0);
+
+        if(changed) {
+          updateTitle();
+        }
 
         //showIN("", 0, ImFlow::ConnectionFilter::SameType(), PIN_STYLE_LOGIC);
       }
@@ -49,11 +62,18 @@ namespace Project::Graph::Node
       void deserialize(nlohmann::json &j) override {
         funcName = j.value("funcName", "");
         arg0 = j.value("arg0", 0);
+        updateTitle();
       }
 
-      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
-        f.write<uint32_t>(Utils::Hash::crc32(funcName));
-        f.write<uint32_t>(arg0);
+      void build(BuildCtx &ctx) override {
+        auto uuidStr = std::to_string(Utils::Hash::crc32(funcName));
+        auto funcVar = ctx.globalVar("UserFunc", "P64::NodeGraph::getFunction("+uuidStr+")");
+
+        auto resVar = "res_" + Utils::toHex64(uuid);
+        ctx.globalVar("int", resVar, 0)
+          .localConst("uint32_t", "t_arg", arg0)
+          .line(resVar + " = " + funcVar + "(t_arg);");
+
       }
   };
 }

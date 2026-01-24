@@ -4,6 +4,7 @@
 */
 #pragma once
 #include <libdragon.h>
+#include "nodeGraph.h"
 
 namespace P64 { class Object; struct ObjectEvent; }
 namespace P64::Coll { struct CollEvent; }
@@ -27,4 +28,5 @@ namespace P64::Script
   // Note: generated and implement in the project:
   ScriptEntry &getCodeByIndex(uint32_t idx);
   uint16_t getCodeSizeByIndex(uint32_t idx);
+  NodeGraph::GraphFunc getGraphFuncByUUID(uint64_t uuid);
 }

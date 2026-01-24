@@ -14,6 +14,7 @@ namespace fs = std::filesystem;
 bool Build::buildNodeGraphAssets(Project::Project &project, SceneCtx &sceneCtx)
 {
   fs::path mkAsset = fs::path{project.conf.pathN64Inst} / "bin" / "mkasset";
+  fs::path sourcePath = fs::path{project.getPath()} / "src" / "p64";
   auto &assets = sceneCtx.project->getAssets().getTypeEntries(Project::FileType::NODE_GRAPH);
   for (auto &asset : assets)
   {
@@ -24,15 +25,27 @@ bool Build::buildNodeGraphAssets(Project::Project &project, SceneCtx &sceneCtx)
     auto outDir = outPath.parent_path();
     Utils::FS::ensureDir(outPath.parent_path());
 
-    sceneCtx.files.push_back(asset.outPath);
-    if(!assetBuildNeeded(asset, outPath))continue;
+    std::string sourceName = Utils::toHex64(asset.uuid) + ".cpp";
+    fs::path sourceOutPath = sourcePath / sourceName;
 
-    //printf("Prefab: %s -> %s\n", asset.path.c_str(), outPath.string().c_str());
+    sceneCtx.files.push_back(asset.outPath);
+    sceneCtx.graphFunctions.push_back(asset.uuid);
+
+    //if(!assetBuildNeeded(asset, outPath) && std::filesystem::exists(sourceOutPath))continue;
+
     auto json = Utils::FS::loadTextFile(asset.path);
     Project::Graph::Graph graph{};
     graph.deserialize(json);
-    auto data = graph.build();
-    data.writeToFile(outPath);
+
+    Utils::BinaryFile binFile{};
+    std::string sourceCode{};
+    sourceCode += "// AUTO-GENERATED FILE\n";
+    sourceCode += "// File: " + asset.getName() + "\n\n";
+
+    graph.build(binFile, sourceCode, asset.uuid);
+    binFile.writeToFile(outPath);
+
+    Utils::FS::saveTextFile(sourceOutPath, sourceCode);
   }
   return true;
 }

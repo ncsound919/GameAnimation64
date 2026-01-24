@@ -42,8 +42,9 @@ namespace Project::Graph::Node
         time = j.value("time", 0.0f);
       }
 
-      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
-        f.write<uint16_t>(time * 1000); // milliseconds
+      void build(BuildCtx &ctx) override {
+        ctx.localConst("uint64_t", "t_time", (uint64_t)(time * 1000.0f))
+          .line("corot_sleep(TICKS_FROM_MS(t_time));");
       }
   };
 }

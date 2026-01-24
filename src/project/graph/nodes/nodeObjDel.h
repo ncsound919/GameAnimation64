@@ -45,8 +45,8 @@ namespace Project::Graph::Node
         objectId = j.value("objectId", 0);
       }
 
-      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
-        f.write<uint16_t>(objectId);
+      void build(BuildCtx &ctx) override {
+        ctx.line("inst->object->remove();");
       }
   };
 }

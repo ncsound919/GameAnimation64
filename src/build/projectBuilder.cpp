@@ -29,7 +29,6 @@ namespace
     {Build::buildTextureAssets, "Texture"},
     {Build::buildAudioAssets,   "Audio"},
     {Build::buildPrefabAssets,  "Prefab"},
-    {Build::buildNodeGraphAssets, "Node Graph"},
   });
 }
 
@@ -84,6 +83,11 @@ bool Build::buildProject(const std::string &path)
   std::string userCodeRules = "";
   for (const auto &dir : userDirs) {
     userCodeRules += "src += $(wildcard src/user/" + dir + "/*.cpp)\n";
+  }
+
+  if(!buildNodeGraphAssets(project, sceneCtx)) {
+    Utils::Logger::log(std::string("Graph-Asset build failed!", Utils::Logger::LEVEL_ERROR));
+    return false;
   }
 
   // Scripts

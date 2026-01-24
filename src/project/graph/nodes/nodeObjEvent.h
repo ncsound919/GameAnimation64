@@ -54,10 +54,18 @@ namespace Project::Graph::Node
         eventValue = j.value("eventValue", 0);
       }
 
-      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
-        f.write<uint16_t>(objectId);
-        f.write<uint16_t>(eventType);
-        f.write<uint32_t>(eventValue);
+      void build(BuildCtx &ctx) override {
+
+        ctx.localConst("uint16_t", "t_objId", objectId)
+          .localConst("uint16_t", "t_eventType", eventType)
+          .localConst("uint32_t", "t_eventVal", eventValue)
+
+          .line("inst->object->getScene().sendEvent(")
+          .line("  t_objId == 0 ? inst->object->id : t_objId,")
+          .line("  inst->object->id,")
+          .line("  t_eventType,")
+          .line("  t_eventVal")
+          .line(");");
       }
   };
 }

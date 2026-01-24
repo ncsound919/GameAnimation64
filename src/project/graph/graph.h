@@ -22,6 +22,10 @@ namespace Project::Graph
       bool deserialize(const std::string &jsonData);
       std::string serialize();
 
-      Utils::BinaryFile build();
+      void build(
+        Utils::BinaryFile &binFile,
+        std::string &source,
+        uint64_t uuid
+      );
   };
 }

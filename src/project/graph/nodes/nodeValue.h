@@ -42,8 +42,8 @@ namespace Project::Graph::Node
         value = j.value("value", 0);
       }
 
-      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
-        f.write<uint16_t>(value);
+      void build(BuildCtx &ctx) override {
+
       }
   };
 }

@@ -24,7 +24,7 @@ Editor::NodeEditor::NodeEditor(uint64_t assetUUID)
   auto &stylePin = *Project::Graph::Node::PIN_STYLE_LOGIC;
   stylePin = ImFlow::PinStyle{
     IM_COL32(0xAA, 0xAA, 0xAA, 0xFF),
-    4, // shape
+    3, // shape
     6.0f, 7.0f, 6.5f, // radius: base, hover, connected
     1.3f // thickness
   };

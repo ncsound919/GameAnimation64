@@ -4,12 +4,20 @@ project(p64editor)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# set(SDL_SHARED OFF)
-## set(SDL_STATIC ON)
+# set(SDL_SHARED ON)
+# set(SDL_STATIC ON)
 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O2")
+# debug, disable LTO
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-lto")
 
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+
+#list(PREPEND CMAKE_PREFIX_PATH
+#    "${CMAKE_SOURCE_DIR}/vendored/SDL/install"
+#)
+#find_package(SDL3 CONFIG REQUIRED)
+
 add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/glm EXCLUDE_FROM_ALL)
 
@@ -211,6 +219,9 @@ target_include_directories(p64editor PRIVATE
     vendored/libdragon
     n64
 )
+
+
+# target_link_libraries(p64editor PRIVATE SDL3::SDL3)
 
 target_compile_definitions(p64editor PRIVATE IMGUI_DEFINE_MATH_OPERATORS GLM_FORCE_QUAT_DATA_XYZW)
 

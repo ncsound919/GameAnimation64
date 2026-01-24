@@ -8,6 +8,7 @@
 
 #include "scene/object.h"
 #include "scene/scene.h"
+#include "script/scriptTable.h"
 
 namespace
 {
@@ -49,9 +50,9 @@ namespace P64::NodeGraph
 
   struct GraphDef
   {
-    uint16_t nodeCount;
-    uint16_t memSize;
-    NodeDef start;
+    GraphFunc func;
+    uint32_t _padding;
+    uint16_t stackSize;
   };
 
   inline void iterateNodes(NodeDef* node, int level, std::function<bool(NodeDef*, int)> fn)
@@ -66,32 +67,46 @@ namespace P64::NodeGraph
   void* load(const char* path)
   {
     auto data = asset_load(path, nullptr);
-
-    std::unordered_set<NodeDef*> visitedNodes{};
-    iterateNodes(&((GraphDef*)data)->start, 0, [&](NodeDef* node, int level)
-    {
-      if(visitedNodes.find(node) != visitedNodes.end())return false;
-      visitedNodes.insert(node);
-
-      if(node->type == NodeType::FUNC)
-      {
-        u_uint32_t* nodeData = (u_uint32_t*)&node->outOffsets[node->outCount];
-        uint32_t funcHash = *nodeData;
-        auto it = userFunctionMap.find(funcHash);
-        if(it == userFunctionMap.end()) {
-          *nodeData = (uint32_t)dummyFunction;
-        } else {
-          *nodeData = (uint32_t)it->second;
-        }
-      }
-      return true;
-    });
-
+    uint64_t uuid = ((uint64_t*)data)[0];
+    // debugf("Loaded NodeGraph: %s (UUID: %016llX)\n", path, uuid);
+    ((GraphFunc*)data)[0] = P64::Script::getGraphFuncByUUID(uuid);
     return data;
   }
 }
 
+void P64::NodeGraph::Instance::load(uint16_t assetIdx)
+{
+  graphDef = (GraphDef*)AssetManager::getByIndex(assetIdx);
+  debugf("Stack-size: %d %d\n", assetIdx, graphDef->stackSize);
+  corot = corot_create(graphDef->func, this, graphDef->stackSize*2);
+}
+
+P64::NodeGraph::Instance::~Instance()
+{
+  if(corot) {
+    corot_destroy(corot);
+    corot = nullptr;
+  }
+}
+
 void P64::NodeGraph::Instance::update(float deltaTime) {
+  //debugf("Instance::update: %p\n", corot);
+  if(!corot)return;
+
+  auto t = get_ticks();
+  disable_interrupts();
+  corot_resume(corot);
+  enable_interrupts();
+  t = get_ticks() - t;
+
+  if(corot_finished(corot))
+  {
+    corot_destroy(corot);
+    corot = nullptr;
+  }
+
+  //graphDef->func();
+  /*
   if(!currNode)return;
 
   const uint16_t *data = currNode->getDataPtr();
@@ -151,9 +166,19 @@ void P64::NodeGraph::Instance::update(float deltaTime) {
   }
 
   currNode = currNode->getNext(outputIndex);
+  */
 }
 
 void P64::NodeGraph::registerFunction(uint32_t strCRC32, UserFunc fn)
 {
   userFunctionMap[strCRC32] = fn;
+}
+
+P64::NodeGraph::UserFunc P64::NodeGraph::getFunction(uint64_t uuid)
+{
+  auto it = userFunctionMap.find((uint32_t)uuid);
+  if(it != userFunctionMap.end()) {
+    return it->second;
+  }
+  return nullptr;
 }

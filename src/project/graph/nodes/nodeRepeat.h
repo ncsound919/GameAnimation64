@@ -42,11 +42,17 @@ namespace Project::Graph::Node
         count = j.value("count", 0);
       }
 
-      void build(Utils::BinaryFile &f, uint32_t &memOffset) override {
-        f.write<uint8_t>(memOffset);
-        memOffset += 1;
+      void build(BuildCtx &ctx) override
+      {
+        auto stdCount = std::to_string(count);
+        auto varCounter = ctx.globalVar("uint8_t", 0);
 
-        f.write<uint8_t>(count);
+        ctx.incrVar(varCounter, 1)
+        .line("if("+varCounter+" == "+stdCount+") {")
+          .setVar(varCounter, 0)
+          .jump(1)
+        .line("}")
+        ;
       }
   };
 }

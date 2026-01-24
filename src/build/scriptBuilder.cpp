@@ -22,6 +22,9 @@ void Build::buildScripts(Project::Project &project, SceneCtx &sceneCtx)
   std::string srcSizeEntries = "";
   std::string srcDecl = "";
 
+  std::string graphDecl = "";
+  std::string graphSwitch = "";
+
   auto scripts = project.getAssets().getTypeEntries(Project::FileType::CODE_OBJ);
   uint32_t idx = 0;
   for (auto &script : scripts)
@@ -60,10 +63,19 @@ void Build::buildScripts(Project::Project &project, SceneCtx &sceneCtx)
     ++idx;
   }
 
+  for(auto &graphUUID : sceneCtx.graphFunctions)
+  {
+    auto idStr = Utils::toHex64(graphUUID);
+    graphSwitch += "      case 0x" + idStr + ": return NodeGraph::G" +idStr + "::run;\n";
+    graphDecl += "  namespace G" + idStr + " { void run(void* arg); }\n";
+  }
+
   auto src = Utils::FS::loadTextFile("data/scripts/scriptTable.cpp");
   src = Utils::replaceAll(src, "__CODE_ENTRIES__", srcEntries);
   src = Utils::replaceAll(src, "__CODE_SIZE_ENTRIES__", srcSizeEntries);
   src = Utils::replaceAll(src, "__CODE_DECL__", srcDecl);
+  src = Utils::replaceAll(src, "__GRAPH_SWITCH_CASE__", graphSwitch);
+  src = Utils::replaceAll(src, "__GRAPH_DEF__", graphDecl);
 
 
   Utils::FS::saveTextFile(pathTable, src);

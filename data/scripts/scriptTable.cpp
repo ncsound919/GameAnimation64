@@ -1,8 +1,13 @@
 // NOTE: Auto-Generated File!
 
-#include "script/scriptTable.h"
+#include <script/scriptTable.h>
+#include <script/nodeGraph.h>
 
 namespace P64 { class Object; }
+
+namespace P64::NodeGraph {
+__GRAPH_DEF__
+}
 
 namespace P64::Script
 {
@@ -32,5 +37,14 @@ __CODE_SIZE_ENTRIES__
       return codeSizeTable[idx];
     }
     return 0;
+  }
+
+  NodeGraph::GraphFunc getGraphFuncByUUID(uint64_t uuid)
+  {
+    switch (uuid)
+    {
+__GRAPH_SWITCH_CASE__
+      default: return nullptr;
+    }
   }
 }

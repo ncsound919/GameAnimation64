@@ -5,6 +5,7 @@
 #include "graph.h"
 
 #include "json.hpp"
+#include "../../utils/string.h"
 
 #include "nodes/nodeWait.h"
 #include "nodes/nodeObjDel.h"
@@ -14,6 +15,7 @@
 #include "nodes/nodeValue.h"
 #include "nodes/nodeRepeat.h"
 #include "nodes/nodeFunc.h"
+#include "nodes/nodeCompBool.h"
 
 namespace
 {
@@ -72,6 +74,7 @@ namespace Project::Graph
     TABLE_ENTRY(Value),
     TABLE_ENTRY(Repeat),
     TABLE_ENTRY(Func),
+    TABLE_ENTRY(CompBool),
   });
 
   const std::vector<std::string> & Graph::getNodeNames()
@@ -177,19 +180,24 @@ namespace Project::Graph
     return data.dump(2);
   }
 
-  Utils::BinaryFile Graph::build()
+  void Graph::build(
+    Utils::BinaryFile &f,
+    std::string &source,
+    uint64_t uuid
+  )
   {
     auto &nodes = graph.getNodes();
 
-    Utils::BinaryFile f{};
-    f.write<uint16_t>(nodes.size());
-    f.write<uint16_t>(0); // memory size, filled later
-    uint32_t memSize = 0;
+    uint16_t stackSize = 4096;
+    f.write<uint64_t>(uuid);
+    f.write<uint16_t>(stackSize);
+
 
     // maps a node's UUID to its own position in the file
     std::unordered_map<uint64_t, uint32_t> nodeSelfPosMap{};
     // map of nodes and their outgoing links to other nodes
     std::unordered_map<uint64_t, std::vector<uint64_t>> nodeOutgoingMap{};
+    std::unordered_map<uint64_t, std::vector<uint64_t>> nodeIngoingValMap{};
 
     // collect all active links
     for (const auto& weakLink : graph.getLinks())
@@ -202,65 +210,102 @@ namespace Project::Graph
           auto rightNode = (Node::Base*)rightPin->getParent();
 
           uint32_t leftIndex = getIndexLeft(leftPin);
+          uint32_t rightIndex = getIndexRight(rightPin);
 
           auto &e = nodeOutgoingMap[leftNode->uuid];
           if(leftIndex >= e.size()) {
             e.resize(leftIndex + 1, 0);
           }
           e[leftIndex] = rightNode->uuid;
+
+          // for value nodes, also track ingoing connections
+          auto &ev = nodeIngoingValMap[rightNode->uuid];
+          if(rightIndex >= ev.size()) {
+            ev.resize(rightIndex + 1, 0);
+          }
+          ev[rightIndex] = leftNode->uuid;
         }
       }
     }
 
+    BuildCtx nodeCtx{};
+    nodeCtx.source = "";
+
     // convert nodes to vector, and make sure the start node (type=0) is first
-    std::vector<std::shared_ptr<ImFlow::BaseNode>> nodeVec{};
+    std::vector<Node::Base*> nodeVec{};
+    std::unordered_map<uint64_t, Node::Base*> nodeMap{};
     nodeVec.reserve(nodes.size());
     for(const auto &node : nodes | std::views::values)
     {
       auto p64Node = (Node::Base*)node.get();
       if(p64Node->type == 0) {
-        nodeVec.insert(nodeVec.begin(), node);
+        nodeVec.insert(nodeVec.begin(), (Node::Base*)node.get());
       } else {
-        nodeVec.push_back(node);
+        nodeVec.push_back((Node::Base*)node.get());
       }
+      nodeMap[p64Node->uuid] = p64Node;
     }
 
 
-    // write out node data itself
+    for(auto &[nodeUUID, ingoingVals] : nodeIngoingValMap)
+    {
+      if(ingoingVals.empty())continue;
+
+      auto p64Node = nodeMap.at(nodeUUID);
+      // only keep indices where type is 1 in p64Node->valInputTypes
+      std::vector<uint64_t> filteredIngoingVals{};
+      for(size_t i = 0; i < p64Node->valInputTypes.size(); ++i)
+      {
+        if(p64Node->valInputTypes[i] == 1) {
+          filteredIngoingVals.push_back(ingoingVals[i]);
+        }
+      }
+      ingoingVals = filteredIngoingVals;
+    }
+
+    source += R"(#include <script/nodeGraph.h>)" "\n";
+    source += R"(#include <scene/object.h>)" "\n";
+    source += R"(#include <scene/scene.h>)" "\n";
+    source += "\n";
+
+    source += "namespace P64::NodeGraph::G" + Utils::toHex64(uuid) + " {\n";
+    source += R"(void run(void* arg) {)" "\n";
+
+    source += R"(  P64::NodeGraph::Instance* inst = (P64::NodeGraph::Instance*)arg; )" "\n";
+
+    auto nodeLabel = [&](uint64_t uuid) {
+      return "NODE_" + Utils::toHex64(uuid);
+    };
+
     for(const auto &node : nodeVec)
     {
-      auto p64Node = (Node::Base*)node.get();
-      auto outSize = nodeOutgoingMap[p64Node->uuid].size();
+      nodeCtx.outUUIDs = &nodeOutgoingMap[node->uuid];
+      nodeCtx.inValUUIDs = &nodeIngoingValMap[node->uuid];
 
-      f.align(2);
-      nodeSelfPosMap[p64Node->uuid] = f.getPos();
-      f.write<uint8_t>(p64Node->type);
-      f.write<uint8_t>(outSize);
 
-      for(auto i=0; i < outSize; ++i) {
-        f.write<uint16_t>(0xDEAD); // next node(s), patched later
+      nodeCtx.source += "  " + nodeLabel(node->uuid) + ": // " + node->getName() + "\n";
+      nodeCtx.source += "  {\n";
+
+      node->build(nodeCtx);
+
+      if(nodeCtx.outUUIDs->empty()) {
+        nodeCtx.line("return;");
+      } else {
+        nodeCtx.jump(0);
       }
 
-      p64Node->build(f, memSize);
+      nodeCtx.source += "  }\n";
     }
 
-    // now patch in the outgoing links
-    for(const auto &node : nodes | std::views::values)
-    {
-      auto p64Node = (Node::Base*)node.get();
-
-      auto posSelf = nodeSelfPosMap[p64Node->uuid];
-      f.setPos(posSelf + 2); // after type and out count
-      auto &outgoing = nodeOutgoingMap[p64Node->uuid];
-      for(size_t i = 0; i < outgoing.size(); ++i)
-      {
-        int32_t relPos = nodeSelfPosMap[outgoing[i]] - posSelf;
-        f.write<int16_t>(relPos);
-      }
+    source += "\n// ==== GLOBAL VARS ==== //\n";
+    for(auto &globalVar : nodeCtx.vars) {
+      source += "  " + globalVar.type + " " + globalVar.name + " = " + globalVar.value + ";\n";
     }
 
-    f.setPos(2);
-    f.write<uint16_t>(memSize); // write memory size
-    return f;
+    source += "\n// ==== CODE ==== //\n";
+    source += nodeCtx.source;
+    source += "}\n";
+    source += "}\n";
+
   }
 }

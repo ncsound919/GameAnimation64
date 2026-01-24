@@ -29,6 +29,7 @@ namespace Build
     Utils::BinaryFile fileScene{};
     Utils::BinaryFile fileObj{};
     StringTable strTable{};
+    std::vector<uint64_t> graphFunctions{};
 
     std::vector<AssetEntry> assetList{};
     std::unordered_map<uint64_t, uint32_t> assetUUIDToIdx{};
