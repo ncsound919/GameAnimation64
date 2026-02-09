@@ -41,10 +41,10 @@ bool Build::buildFontAssets(Project::Project &project, SceneCtx &sceneCtx)
     }
 
     std::string cmd = mkFont.string() + " -c " + std::to_string(compr);
-    cmd += " -o " + outDir.string();
+    cmd += " -o \"" + outDir.string() + "\"";
     cmd += " -s " + std::to_string(font.conf.baseScale);
     if(!charsetFile.empty())cmd += " --charset " + charsetFile.string();
-    cmd += " " + font.path;
+    cmd += " \"" + font.path + "\"";
 
     bool res = sceneCtx.toolchain.runCmdSyncLogged(cmd);
     std::filesystem::remove(charsetFile);

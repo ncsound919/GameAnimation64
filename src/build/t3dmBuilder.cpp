@@ -48,8 +48,8 @@ bool Build::buildT3DCollision(
 
   fs::path mkAsset = fs::path{project.conf.pathN64Inst} / "bin" / "mkasset";
   std::string cmd = mkAsset.string() + " -c 1";;
-  cmd += " -o " + outPath.parent_path().string();
-  cmd += " " + outPath.string();
+  cmd += " -o \"" + outPath.parent_path().string() + "\"";
+  cmd += " \"" + outPath.string() + "\"";
 
   if(!sceneCtx.toolchain.runCmdSyncLogged(cmd)) {
     return false;
@@ -101,8 +101,8 @@ bool Build::buildT3DMAssets(Project::Project &project, SceneCtx &sceneCtx)
       if(compr < 0)compr = 1; // @TODO: pull default compression level
 
       std::string cmd = mkAsset.string() + " -c " + std::to_string(compr);
-      cmd += " -o " + t3dmDir.string();
-      cmd += " " + t3dmPath.string();
+      cmd += " -o \"" + t3dmDir.string() + "\"";
+      cmd += " \"" + t3dmPath.string() + "\"";
 
       if(!sceneCtx.toolchain.runCmdSyncLogged(cmd)) {
         return false;

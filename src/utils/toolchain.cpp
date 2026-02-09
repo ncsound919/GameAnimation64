@@ -105,7 +105,7 @@ bool Utils::Toolchain::runCmdSyncLogged(const std::string &cmd)
   #if defined(_WIN32)
     auto minttyPath = state.mingwPath / "usr" / "bin" / "bash.exe";
     //std::string command = minttyPath.string() + " --log - -w hide /bin/env MSYSTEM=MINGW64 " + cmd;
-    std::string command = minttyPath.string() + " -lc \"" + cmd + "\"";
+    std::string command = minttyPath.string() + " -lc '" + cmd + "'";
     //std::string command = cmd;
     for(char &c : command) {
       if(c == '\\')c = '/';

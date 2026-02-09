@@ -49,8 +49,8 @@ bool Build::buildTextureAssets(Project::Project &project, SceneCtx &sceneCtx)
       if (image.conf.format != 0) {
         cmd += std::string{" -f "} + Utils::TEX_TYPES[image.conf.format];
       }
-      cmd += " -o " + assetDir.string();
-      cmd += " " + image.path;
+      cmd += " -o \"" + assetDir.string() + "\"";
+      cmd += " \"" + image.path + "\"";
 
       if(!sceneCtx.toolchain.runCmdSyncLogged(cmd)) {
         return false;

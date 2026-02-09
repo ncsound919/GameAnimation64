@@ -37,8 +37,8 @@ bool Build::buildAudioAssets(Project::Project &project, SceneCtx &sceneCtx)
     }
 
     cmd += " --wav-compress " + std::to_string(asset.conf.wavCompression.value);
-    cmd += " -o " + outDir.string();
-    cmd += " " + asset.path;
+    cmd += " -o \"" + outDir.string() + "\"";
+    cmd += " \"" + asset.path + "\"";
 
     if(!sceneCtx.toolchain.runCmdSyncLogged(cmd)) {
       return false;
