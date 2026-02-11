@@ -19,7 +19,7 @@ const std::string& CLI::getProjectPath()
 
 CLI::Result CLI::run(int argc, char** argv)
 {
-  argparse::ArgumentParser prog{"pyrite64", "0.1.0"};
+  argparse::ArgumentParser prog{"pyrite64", PYRITE_VERSION};
   prog.add_argument("--cli")
    .help("Run in CLI mode (no GUI)")
    .default_value(false)
