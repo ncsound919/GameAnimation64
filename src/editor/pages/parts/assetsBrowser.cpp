@@ -392,6 +392,8 @@ void Editor::AssetsBrowser::draw() {
 
       if (ImGui::Button(scene.name.c_str(), textBtnSize)) {
         ctx.project->getScenes().loadScene(scene.id);
+        ctx.project->conf.sceneIdLastOpened = scene.id;
+        ctx.project->saveConfig();
       }
 
       if(isSelected)ImGui::PopStyleColor(2);

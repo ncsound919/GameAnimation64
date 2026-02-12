@@ -76,8 +76,14 @@ Project::Project::Project(const std::string &p64projPath)
   scenes.reload();
 }
 
-void Project::Project::save() {
+void Project::Project::saveConfig()
+{
   Utils::FS::saveTextFile(pathConfig, conf.serialize());
+}
+
+void Project::Project::save() {
+  saveConfig();
   assets.save();
   scenes.save();
 }
+

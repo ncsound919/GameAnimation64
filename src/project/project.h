@@ -41,6 +41,7 @@ namespace Project
       Project(const std::string &p64projPath);
 
       void save();
+      void saveConfig();
 
       AssetManager& getAssets() { return assets; }
       SceneManager& getScenes() { return scenes; }

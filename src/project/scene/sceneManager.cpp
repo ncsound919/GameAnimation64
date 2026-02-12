@@ -100,6 +100,5 @@ void Project::SceneManager::loadScene(int id) {
   //if we load a scene we should clear the undo history
   Editor::UndoRedo::getHistory().clear();
 
-  project->conf.sceneIdLastOpened = id;
   loadedScene = new Scene(id, project->getPath());
 }
