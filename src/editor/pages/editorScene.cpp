@@ -53,87 +53,6 @@ void Editor::Scene::draw()
 
   bool isRunning = ctx.isBuildOrRunning();
 
-   // Top bar
-  ImGui::SetNextWindowPos({0,0}, ImGuiCond_Always);
-  ImGui::SetNextWindowSize({io.DisplaySize.x, 4}, ImGuiCond_Always);
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8,6});
-  if(ImGui::Begin("TOP_BAR", 0,
-    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar
-    | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDocking
-  )) {
-    if(ImGui::BeginMenuBar())
-    {
-      if(ImGui::BeginMenu("Project"))
-      {
-        if(ImGui::MenuItem(ICON_MDI_CONTENT_SAVE_OUTLINE " Save"))ctx.project->save();
-        if(ImGui::MenuItem(ICON_MDI_COG " Settings"))projectSettingsOpen = true;
-        if(ImGui::MenuItem(ICON_MDI_CLOSE " Close"))Actions::call(Actions::Type::PROJECT_CLOSE);
-        ImGui::EndMenu();
-      }
-
-      // Edit Menu with undo/redo functionality including description
-      if(ImGui::BeginMenu("Edit"))
-      {
-        auto& history = UndoRedo::getHistory();
-
-        std::string undoText = ICON_MDI_UNDO " Undo";
-        if (history.canUndo()) {
-          undoText += " (" + history.getUndoDescription() + ")";
-        }
-        if(ImGui::MenuItem(undoText.c_str(), "Ctrl+Z", false, history.canUndo())) {
-          history.undo();
-        }
-
-        std::string redoText = ICON_MDI_REDO " Redo";
-        if (history.canRedo()) {
-          redoText += " (" + history.getRedoDescription() + ")";
-        }
-        if(ImGui::MenuItem(redoText.c_str(), "Ctrl+Y", false, history.canRedo())) {
-          history.redo();
-        }
-
-        ImGui::EndMenu();
-      }
-
-      if(ImGui::BeginMenu("Build"))
-      {
-        if(ImGui::MenuItem(ICON_MDI_HAMMER " Build"))Actions::call(Actions::Type::PROJECT_BUILD);
-        if(ImGui::MenuItem(ICON_MDI_PLAY " Build & Run"))Actions::call(Actions::Type::PROJECT_BUILD, "run");
-        if(ImGui::MenuItem("Clean"))Actions::call(Actions::Type::PROJECT_CLEAN);
-        ImGui::EndMenu();
-      }
-
-      if(ImGui::BeginMenu("View"))
-      {
-        if(ImGui::MenuItem("Reset Layout"))dockSpaceInit = false;
-        ImGui::EndMenu();
-      }
-
-      ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 40);
-
-      const char* tooltip{};
-      ImGui::PushFont(nullptr, 20.0f);
-      if(isRunning){
-        ImGui::BeginDisabled();
-        ImGui::MenuItem(ICON_MDI_STOP);
-        ImGui::EndDisabled();
-      } else {
-        ImGui::PushStyleColor(ImGuiCol_Text, {0.6f, 0.85f, 0.6f, 1.0f});
-        if(ImGui::MenuItem(ICON_MDI_PLAY))Actions::call(Actions::Type::PROJECT_BUILD, "run");
-        if(ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))tooltip = "Run (F12)";
-        ImGui::PopStyleColor();
-      }
-
-      ImGui::PopFont();
-
-      if(tooltip)ImGui::SetTooltip(tooltip);
-
-      ImGui::EndMenuBar();
-    }
-    ImGui::End();
-  }
-  ImGui::PopStyleVar();
-
   ImGui::SetNextWindowPos({0, HEIGHT_TOP_BAR});
   ImGui::SetNextWindowSize({
     viewport->WorkSize.x,
@@ -256,6 +175,87 @@ void Editor::Scene::draw()
     ImGui::PopStyleColor(1);
     ImGui::PopStyleVar(1);
   }
+
+  // Top bar
+  ImGui::SetNextWindowPos({0,0}, ImGuiCond_Always);
+  ImGui::SetNextWindowSize({io.DisplaySize.x, 4}, ImGuiCond_Always);
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8,6});
+  if(ImGui::Begin("TOP_BAR", 0,
+    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar
+    | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDocking
+  )) {
+    if(ImGui::BeginMenuBar())
+    {
+      if(ImGui::BeginMenu("Project"))
+      {
+        if(ImGui::MenuItem(ICON_MDI_CONTENT_SAVE_OUTLINE " Save"))ctx.project->save();
+        if(ImGui::MenuItem(ICON_MDI_COG " Settings"))projectSettingsOpen = true;
+        if(ImGui::MenuItem(ICON_MDI_CLOSE " Close"))Actions::call(Actions::Type::PROJECT_CLOSE);
+        ImGui::EndMenu();
+      }
+
+      // Edit Menu with undo/redo functionality including description
+      if(ImGui::BeginMenu("Edit"))
+      {
+        auto& history = UndoRedo::getHistory();
+
+        std::string undoText = ICON_MDI_UNDO " Undo";
+        if (history.canUndo()) {
+          undoText += " (" + history.getUndoDescription() + ")";
+        }
+        if(ImGui::MenuItem(undoText.c_str(), "Ctrl+Z", false, history.canUndo())) {
+          history.undo();
+        }
+
+        std::string redoText = ICON_MDI_REDO " Redo";
+        if (history.canRedo()) {
+          redoText += " (" + history.getRedoDescription() + ")";
+        }
+        if(ImGui::MenuItem(redoText.c_str(), "Ctrl+Y", false, history.canRedo())) {
+          history.redo();
+        }
+
+        ImGui::EndMenu();
+      }
+
+      if(ImGui::BeginMenu("Build"))
+      {
+        if(ImGui::MenuItem(ICON_MDI_HAMMER " Build"))Actions::call(Actions::Type::PROJECT_BUILD);
+        if(ImGui::MenuItem(ICON_MDI_PLAY " Build & Run"))Actions::call(Actions::Type::PROJECT_BUILD, "run");
+        if(ImGui::MenuItem("Clean"))Actions::call(Actions::Type::PROJECT_CLEAN);
+        ImGui::EndMenu();
+      }
+
+      if(ImGui::BeginMenu("View"))
+      {
+        if(ImGui::MenuItem("Reset Layout"))dockSpaceInit = false;
+        ImGui::EndMenu();
+      }
+
+      ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 40);
+
+      const char* tooltip{};
+      ImGui::PushFont(nullptr, 20.0f);
+      if(isRunning){
+        ImGui::BeginDisabled();
+        ImGui::MenuItem(ICON_MDI_STOP);
+        ImGui::EndDisabled();
+      } else {
+        ImGui::PushStyleColor(ImGuiCol_Text, {0.6f, 0.85f, 0.6f, 1.0f});
+        if(ImGui::MenuItem(ICON_MDI_PLAY))Actions::call(Actions::Type::PROJECT_BUILD, "run");
+        if(ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))tooltip = "Run (F12)";
+        ImGui::PopStyleColor();
+      }
+
+      ImGui::PopFont();
+
+      if(tooltip)ImGui::SetTooltip(tooltip);
+
+      ImGui::EndMenuBar();
+    }
+    ImGui::End();
+  }
+  ImGui::PopStyleVar();
 
   // Bottom Status bar
   ImGui::SetNextWindowPos({0, io.DisplaySize.y - HEIGHT_STATUS_BAR}, ImGuiCond_Always, {0.0f, 0.0f});
