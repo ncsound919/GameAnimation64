@@ -28,6 +28,9 @@ struct Context
 
   Clipboard clipboard{};
 
+  uint64_t timeCpuSelf{};
+  uint64_t timeCpuTotal{};
+
   // Editor state
   uint64_t selAssetUUID{0};
   uint32_t selObjectUUID{0};

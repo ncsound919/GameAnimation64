@@ -147,7 +147,7 @@ void Editor::ObjectInspector::draw() {
 
   if (ImGui::BeginPopupContextItem("CompSelect"))
   {
-    for (auto &comp : Project::Component::TABLE) {
+    for (auto &comp : Project::Component::TABLE_SORTED_BY_NAME) {
       auto name = std::string{comp.icon} + " " + comp.name;
       if(ImGui::MenuItem(name.c_str())) {
         Editor::UndoRedo::SnapshotScope snapshot(Editor::UndoRedo::getHistory(), "Add Component");

@@ -49,6 +49,7 @@ void cli(argparse::ArgumentParser &prog);
 // Main code
 int main(int argc, char** argv)
 {
+  Project::Component::init();
   fs::current_path(Utils::Proc::getSelfDir());
   ctx.toolchain.scan();
 
@@ -242,6 +243,7 @@ int main(int argc, char** argv)
         }
         // Check: io.WantCaptureMouse, io.WantCaptureKeyboard
       }
+      uint64_t timeTotal = SDL_GetTicksNS();
 
       Utils::FilePicker::poll();
       if (ctx.project) {
@@ -257,6 +259,7 @@ int main(int argc, char** argv)
       ImGui_ImplSDL3_NewFrame();
       ImGui::NewFrame();
 
+      uint64_t ticksSelf = SDL_GetTicksNS();
       scene.update();
 
       if (ctx.project) {
@@ -267,8 +270,12 @@ int main(int argc, char** argv)
 
       Editor::Noti::draw();
 
+      ctx.timeCpuSelf = SDL_GetTicksNS() - ticksSelf;
+
       ImGui::Render();
       scene.draw();
+
+      ctx.timeCpuTotal = SDL_GetTicksNS() - timeTotal;
 
       if(presentMode != SDL_GPU_PRESENTMODE_VSYNC)
       {

@@ -178,6 +178,8 @@ void Editor::AssetsBrowser::draw() {
 
     ImGui::EndChild();
     ImGui::PopStyleColor(3);
+  } else {
+    ImGui::Dummy({0, 4});
   }
 
   ImGui::BeginChild("ASSETS");
