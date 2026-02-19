@@ -1,5 +1,5 @@
 /**
- * VibeCreatorPage.ts
+ * VibeCreatorPage.js
  * "Create" page for the Pyrite64 Vibe Coding Engine.
  *
  * Styled like a sports-game character creation screen with tabbed
