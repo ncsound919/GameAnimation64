@@ -51,5 +51,8 @@ export class GridHelper {
     this.minorGrid.geometry.dispose();
     this.majorGrid.geometry.dispose();
     this.axes.geometry.dispose();
+    (this.minorGrid.material as THREE.Material).dispose();
+    (this.majorGrid.material as THREE.Material).dispose();
+    (this.axes.material as THREE.Material).dispose();
   }
 }

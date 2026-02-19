@@ -57,7 +57,7 @@ export interface SceneNodeData {
   // Mesh-specific
   gltfPath?:      string;
   materialId?:    string;
-  cartoonBands?:  number;  // cel-shading colour band count (2–8)
+  cartoonBands?:  number;  // cel-shading color band count (2–8)
 }
 
 // ─── Viewport3D ───────────────────────────────────────────────────────────────
@@ -77,6 +77,8 @@ export class Viewport3D {
   private selected  = new Set<string>();
   private renderMode: RenderMode = 'standard';
   private animFrameId: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private clickHandler: ((e: MouseEvent) => void) | null = null;
 
   private budgetWarningCb?: (w: BudgetWarning) => void;
   private selectionChangeCb?: (ids: string[]) => void;
@@ -117,7 +119,11 @@ export class Viewport3D {
     this.camCtrl = new CameraController(this.camera, this.renderer.domElement);
 
     // Post-processing pipeline
-    this.composer    = new EffectComposer(this.renderer);
+    // Use a render target with a depth texture so CartoonPass can use it for edge detection
+    const rtParams = { depthTexture: new THREE.DepthTexture(opts.container.clientWidth, opts.container.clientHeight) };
+    this.composer    = new EffectComposer(this.renderer, new THREE.WebGLRenderTarget(
+      opts.container.clientWidth, opts.container.clientHeight, rtParams,
+    ));
     const renderPass = new RenderPass(this.scene, this.camera);
     this.composer.addPass(renderPass);
 
@@ -139,12 +145,13 @@ export class Viewport3D {
     this.matBridge = new N64MaterialBridge();
 
     // Resize observer
-    const ro = new ResizeObserver(() => this.handleResize(opts.container));
-    ro.observe(opts.container);
+    this.resizeObserver = new ResizeObserver(() => this.handleResize(opts.container));
+    this.resizeObserver.observe(opts.container);
     this.handleResize(opts.container);
 
     // Selection via raycasting
-    this.renderer.domElement.addEventListener('click', (e) => this.handleClick(e));
+    this.clickHandler = (e: MouseEvent) => this.handleClick(e);
+    this.renderer.domElement.addEventListener('click', this.clickHandler);
 
     this.startLoop();
   }
@@ -173,6 +180,17 @@ export class Viewport3D {
     const obj = this.nodeMap.get(id);
     if (obj) {
       this.scene.remove(obj);
+      obj.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          const mat = child.material;
+          if (Array.isArray(mat)) {
+            mat.forEach(m => m.dispose());
+          } else {
+            mat.dispose();
+          }
+        }
+      });
       this.nodeMap.delete(id);
       this.selected.delete(id);
     }
@@ -195,19 +213,43 @@ export class Viewport3D {
     this.nodeMap.forEach((obj) => {
       obj.traverse((child) => {
         if (child instanceof THREE.Mesh) {
+          const oldMaterial = child.material;
           switch (mode) {
-            case 'wireframe':
-              (child.material as THREE.Material & { wireframe?: boolean }).wireframe = true;
+            case 'wireframe': {
+              const mats = Array.isArray(oldMaterial) ? oldMaterial : [oldMaterial];
+              mats.forEach((mat) => {
+                if (mat && 'wireframe' in mat) {
+                  (mat as THREE.Material & { wireframe?: boolean }).wireframe = true;
+                }
+              });
               break;
-            case 'cartoon':
-              child.material = this.matBridge.toCartoon(child.material);
+            }
+            case 'cartoon': {
+              const newMat = this.matBridge.toCartoon(Array.isArray(oldMaterial) ? oldMaterial[0] : oldMaterial);
+              child.material = newMat;
+              if (oldMaterial !== newMat) {
+                (Array.isArray(oldMaterial) ? oldMaterial : [oldMaterial]).forEach(m => m.dispose());
+              }
               break;
-            case 'n64-accurate':
-              child.material = this.matBridge.toN64Accurate(child.material);
+            }
+            case 'n64-accurate': {
+              const newMat = this.matBridge.toN64Accurate(Array.isArray(oldMaterial) ? oldMaterial[0] : oldMaterial);
+              child.material = newMat;
+              if (oldMaterial !== newMat) {
+                (Array.isArray(oldMaterial) ? oldMaterial : [oldMaterial]).forEach(m => m.dispose());
+              }
               break;
-            default:
-              child.material = this.matBridge.toStandard(child.material);
-              (child.material as THREE.Material & { wireframe?: boolean }).wireframe = false;
+            }
+            default: {
+              const newMat = this.matBridge.toStandard(Array.isArray(oldMaterial) ? oldMaterial[0] : oldMaterial);
+              child.material = newMat;
+              if ('wireframe' in newMat) {
+                (newMat as THREE.Material & { wireframe?: boolean }).wireframe = false;
+              }
+              if (oldMaterial !== newMat) {
+                (Array.isArray(oldMaterial) ? oldMaterial : [oldMaterial]).forEach(m => m.dispose());
+              }
+            }
           }
         }
       });
@@ -238,6 +280,17 @@ export class Viewport3D {
 
   dispose(): void {
     if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
+
+    if (this.clickHandler) {
+      this.renderer.domElement.removeEventListener('click', this.clickHandler);
+      this.clickHandler = null;
+    }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
     this.renderer.dispose();
     this.camCtrl.dispose();
   }

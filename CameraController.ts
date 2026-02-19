@@ -24,6 +24,10 @@ export class CameraController {
   private flySpeed = 8.0;  // units/second
   private clock   = new THREE.Clock();
 
+  private keyDownHandler: (e: KeyboardEvent) => void;
+  private keyUpHandler:   (e: KeyboardEvent) => void;
+  private blurHandler:    () => void;
+
   constructor(camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
     this.camera = camera;
 
@@ -36,8 +40,12 @@ export class CameraController {
 
     // Keyboard listeners for fly mode
     domElement.tabIndex = 0;  // make focusable
-    domElement.addEventListener('keydown', (e) => this.onKeyDown(e));
-    domElement.addEventListener('keyup',   (e) => this.onKeyUp(e));
+    this.keyDownHandler = (e: KeyboardEvent) => this.onKeyDown(e);
+    this.keyUpHandler   = (e: KeyboardEvent) => this.onKeyUp(e);
+    this.blurHandler    = () => this.keys.clear();
+    domElement.addEventListener('keydown', this.keyDownHandler);
+    domElement.addEventListener('keyup',   this.keyUpHandler);
+    domElement.addEventListener('blur',    this.blurHandler);
   }
 
   /** Called every frame from the render loop. */
@@ -70,6 +78,10 @@ export class CameraController {
   }
 
   dispose(): void {
+    const el = this.orbit.domElement as HTMLElement;
+    el.removeEventListener('keydown', this.keyDownHandler);
+    el.removeEventListener('keyup',   this.keyUpHandler);
+    el.removeEventListener('blur',    this.blurHandler);
     this.orbit.dispose();
   }
 

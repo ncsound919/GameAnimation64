@@ -104,6 +104,7 @@ export class CartoonPass extends Pass {
     readBuffer: THREE.WebGLRenderTarget,
   ): void {
     this.material.uniforms['tDiffuse'].value   = readBuffer.texture;
+    this.material.uniforms['tDepth'].value     = readBuffer.depthTexture ?? null;
     this.material.uniforms['bands'].value      = this.bands;
     this.material.uniforms['outlineStr'].value = this.outlineStr;
 

@@ -81,18 +81,43 @@ export class VibeNode {
 
   private async directGenerate(prompt: string, context: VibeContext): Promise<void> {
     const systemPrompt = buildSystemPrompt(context);
+    const apiKey = (typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY) ?? '';
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':      'application/json',
+          'x-api-key':         apiKey,
+          'anthropic-version': '2023-06-01',
+        },
         body:    JSON.stringify({
           model:      'claude-sonnet-4-6',
           max_tokens: 2048,
           system:     systemPrompt,
-          messages:   [{ role: 'user', content: prompt }],
+          messages:   [{ role: 'user', content: sanitizeInput(prompt) }],
         }),
       });
+
+      if (!res.ok) {
+        const rawBody = await res.text();
+        let apiMessage = '';
+        try {
+          const parsed = JSON.parse(rawBody);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.error && typeof parsed.error.message === 'string') {
+              apiMessage = parsed.error.message;
+            } else if (typeof parsed.message === 'string') {
+              apiMessage = parsed.message;
+            }
+          }
+        } catch {
+          // Body was not JSON; fall back to raw text.
+        }
+        const base   = `Anthropic API request failed with status ${res.status}`;
+        const detail = apiMessage || rawBody || res.statusText;
+        throw new Error(detail ? `${base}: ${detail}` : base);
+      }
 
       const data = await res.json();
       const text = data.content
@@ -106,8 +131,9 @@ export class VibeNode {
       const patch = JSON.parse(json) as NodeGraphConfig;
       validatePatch(patch);  // throws on invalid
       this.opts.onResult(patch);
-    } catch (e: any) {
-      this.opts.onError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      this.opts.onError(message);
     }
   }
 }
@@ -129,15 +155,31 @@ export interface VibeContext {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/** Strip characters that could be used to inject rogue instructions into the prompt. */
+function sanitizeInput(value: string): string {
+  // Remove null bytes and control characters (except common whitespace)
+  return value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+
+function sanitizeList(items: string[]): string[] {
+  return items.map(s => sanitizeInput(s).replace(/[,\n\r]/g, ' '));
+}
+
 function buildSystemPrompt(ctx: VibeContext): string {
-  return `You are a Pyrite64 Node-Graph assistant. Generate a NodeGraphConfig JSON patch for the entity "${ctx.entityName}".
+  const entityName       = sanitizeInput(ctx.entityName);
+  const nodeTypes        = sanitizeList(ctx.availableNodeTypes).join(', ');
+  const animations       = sanitizeList(ctx.animations).join(', ') || 'none';
+  const sounds           = sanitizeList(ctx.sounds).join(', ') || 'none';
+  const sceneEntities    = sanitizeList(ctx.sceneEntities).join(', ') || 'none';
+
+  return `You are a Pyrite64 Node-Graph assistant. Generate a NodeGraphConfig JSON patch for the entity "${entityName}".
 
 RULES (non-negotiable — this runs on N64 hardware):
-- Only use these node types: ${ctx.availableNodeTypes.join(', ')}
+- Only use these node types: ${nodeTypes}
 - No heap allocations. No dynamic strings. No recursion.
-- Animation names must be one of: ${ctx.animations.join(', ') || 'none'}
-- Sound ids must be one of: ${ctx.sounds.join(', ') || 'none'}
-- Scene entities: ${ctx.sceneEntities.join(', ') || 'none'}
+- Animation names must be one of: ${animations}
+- Sound ids must be one of: ${sounds}
+- Scene entities: ${sceneEntities}
 - Position values are canvas coordinates (arbitrary integers).
 
 OUTPUT: Respond ONLY with a single JSON object. No markdown. No explanation. Schema:
