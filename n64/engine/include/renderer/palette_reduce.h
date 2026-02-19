@@ -5,8 +5,8 @@
  * @copyright 2025 - Max Bebök
  * @license MIT
  *
- * Quantizes vertex colors and texture palettes to discrete bands
- * for cartoon rendering on N64 hardware.
+ * Quantizes vertex colors to discrete bands for
+ * cartoon rendering on N64 hardware.
  *
  * Technique:
  *   N64 vertex colors are 8-bit per channel (RGBA).  For cartoon styles
