@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pyrite64 – Vibe Coding Dashboard</title>
+
+  <!-- Fonts (inter + JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- Dashboard stylesheet -->
+  <link rel="stylesheet" href="vibe-dashboard.css" />
+  
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Root mount point — VibeDashboard replaces its content -->
+  <div id="app"></div>
+
+  <!--
+    Entry script.
+    In a real Electron build this would be a bundled renderer module.
+    For dev / standalone preview we bootstrap the dashboard directly.
+  -->
+  <script type="module">
+    import { VibeDashboard } from './VibeDashboard.js';
+
+    // ── Demo scene entities ──────────────────────────────────────────────────
+    const demoEntities = [
+      {
+        id: 'player-1', name: 'Player', type: 'mesh',
+        children: [
+          { id: 'player-shadow', name: 'Shadow', type: 'mesh', children: [] },
+        ],
+      },
+      {
+        id: 'enemy-goomba', name: 'Goomba', type: 'mesh',
+        children: [],
+      },
+      {
+        id: 'enemy-koopa', name: 'Koopa', type: 'mesh',
+        children: [],
+      },
+      {
+        id: 'cam-main', name: 'MainCamera', type: 'camera',
+        children: [],
+      },
+      {
+        id: 'light-sun', name: 'SunLight', type: 'light',
+        children: [],
+      },
+      {
+        id: 'col-floor', name: 'FloorCollision', type: 'collision',
+        children: [],
+      },
+      {
+        id: 'empty-spawn', name: 'SpawnPoint', type: 'empty',
+        children: [],
+      },
+    ];
+
+    // ── Boot dashboard ───────────────────────────────────────────────────────
+    const dashboard = new VibeDashboard({
+      container:     document.getElementById('app'),
+      projectName:   'my_n64_game',
+      initialEntity: 'Player',
+      initialScene:  demoEntities,
+      nodeTypes:     undefined,  // uses defaults
+
+      onPatchApply(patch, entityName) {
+        console.log('[Host] Patch applied to', entityName, patch);
+        dashboard.toast(
+          `Wrote ${patch.nodes.length} nodes to ${entityName}.p64graph`,
+          'success',
+        );
+      },
+
+      onBuild() {
+        console.log('[Host] Build requested');
+        setTimeout(() => dashboard.toast('Build succeeded ✓', 'success'), 1800);
+      },
+
+      onRun() {
+        console.log('[Host] Run requested');
+        setTimeout(() => dashboard.toast('Emulator launched', 'success'), 1200);
+      },
+    });
+
+    // ── Expose to console for debugging ──────────────────────────────────────
+    window.__vibe = dashboard;
+  </script>
+</body>
+</html>

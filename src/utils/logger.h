@@ -15,6 +15,8 @@ namespace Utils::Logger
   typedef void (*LogOutputFunc)(const std::string &msg);
 
   void setOutput(LogOutputFunc outFunc);
+  void setMinLevel(int level);
+  int getMinLevel();
 
   void log(const std::string &msg, int level = LEVEL_INFO);
   void logRaw(const std::string &msg, int level = LEVEL_INFO);

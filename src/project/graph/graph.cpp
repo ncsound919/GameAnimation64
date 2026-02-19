@@ -20,6 +20,9 @@
 #include "nodes/nodeArg.h"
 #include "nodes/nodeSwitchCase.h"
 #include "nodes/nodeNote.h"
+#include "nodes/nodeAnim.h"
+#include "nodes/nodeGameLogic.h"
+#include "nodes/nodeInput.h"
 
 namespace
 {
@@ -83,6 +86,33 @@ namespace Project::Graph
     TABLE_ENTRY(Arg),
     TABLE_ENTRY(SwitchCase),
     TABLE_ENTRY(Note),
+    // Animation nodes
+    TABLE_ENTRY(PlayAnim),
+    TABLE_ENTRY(StopAnim),
+    TABLE_ENTRY(SetAnimBlend),
+    TABLE_ENTRY(WaitAnimEnd),
+    TABLE_ENTRY(SetAnimSpeed),
+    // Game logic nodes
+    TABLE_ENTRY(MoveToward),
+    TABLE_ENTRY(SetPosition),
+    TABLE_ENTRY(SetVelocity),
+    TABLE_ENTRY(Spawn),
+    TABLE_ENTRY(GetDistance),
+    TABLE_ENTRY(SetVisible),
+    TABLE_ENTRY(PlaySound),
+    TABLE_ENTRY(OnCollide),
+    TABLE_ENTRY(OnTick),
+    TABLE_ENTRY(OnTimer),
+    TABLE_ENTRY(Destroy),
+    TABLE_ENTRY(MathOp),
+    // Input & state management nodes
+    TABLE_ENTRY(OnButtonPress),
+    TABLE_ENTRY(OnButtonHeld),
+    TABLE_ENTRY(OnButtonRelease),
+    TABLE_ENTRY(ReadStick),
+    TABLE_ENTRY(SetState),
+    TABLE_ENTRY(GetState),
+    TABLE_ENTRY(StateMachine),
   });
 
   const std::vector<std::string> & Graph::getNodeNames()

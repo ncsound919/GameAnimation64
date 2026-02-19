@@ -7,6 +7,7 @@
 #include <fstream>
 #include <memory>
 #include <filesystem>
+#include <cstdio>
 
 #ifdef _WIN32
   #include <windows.h>
@@ -15,6 +16,7 @@
   #include <climits>
 #else
   #include <unistd.h>
+  #include <sys/wait.h>
 #endif
 
 #include "logger.h"
@@ -24,38 +26,66 @@ namespace fs = std::filesystem;
 namespace
 {
   constexpr uint32_t BUFF_SIZE = 128;
+
+  FILE* openPipeRead(const std::string &cmd)
+  {
+  #if defined(_WIN32)
+    return _popen(cmd.c_str(), "r");
+  #else
+    return popen(cmd.c_str(), "r");
+  #endif
+  }
+
+  int closePipe(FILE* pipe)
+  {
+  #if defined(_WIN32)
+    return _pclose(pipe);
+  #else
+    return pclose(pipe);
+  #endif
+  }
+
+  bool closeStatusSuccess(int status)
+  {
+  #if defined(_WIN32)
+    return status == 0;
+  #else
+    if (status == -1) {
+      return false;
+    }
+    if (WIFEXITED(status)) {
+      return WEXITSTATUS(status) == 0;
+    }
+    return false;
+  #endif
+  }
 }
 
 std::string Utils::Proc::runSync(const std::string &cmd)
 {
-  std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
+  std::shared_ptr<FILE> pipe(openPipeRead(cmd), closePipe);
   if(!pipe)return "";
 
   char buffer[BUFF_SIZE];
   std::string result{};
 
-  while(!feof(pipe.get()))
-  {
-    if(fgets(buffer, BUFF_SIZE, pipe.get()) != nullptr) {
-      result += buffer;
-    }
+  while(fgets(buffer, BUFF_SIZE, pipe.get()) != nullptr) {
+    result += buffer;
   }
   return result;
 }
 
 bool Utils::Proc::runSyncLogged(const std::string&cmd) {
-  auto cmdWithErr = cmd + " 2>&1"; // @TODO: windows handling
-  FILE* pipe = popen(cmdWithErr.c_str(), "r");
-  if(!pipe)return "";
+  auto cmdWithErr = cmd + " 2>&1";
+  FILE* pipe = openPipeRead(cmdWithErr);
+  if(!pipe)return false;
 
   char buffer[BUFF_SIZE];
-  while(!feof(pipe))
-  {
-    if(fgets(buffer, BUFF_SIZE, pipe) != nullptr) {
-      Logger::logRaw(buffer);
-    }
+  while(fgets(buffer, BUFF_SIZE, pipe) != nullptr) {
+    Logger::logRaw(buffer);
   }
-  return pclose(pipe) == 0;
+  const int status = closePipe(pipe);
+  return closeStatusSuccess(status);
 }
 
 std::string Utils::Proc::getSelfPath()

@@ -81,10 +81,11 @@ export class VibeNode {
 
   private async directGenerate(prompt: string, context: VibeContext): Promise<void> {
     const systemPrompt = buildSystemPrompt(context);
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Browser-safe API key access (mock or localStorage)
+    const apiKey = (window as any).ANTHROPIC_API_KEY || localStorage.getItem('anthropic_key') || '';
     
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+      console.warn('ANTHROPIC_API_KEY not set. Using mock response.');
     }
 
     try {
@@ -190,16 +191,98 @@ function buildSystemPrompt(ctx: VibeContext): string {
   const entities = sanitizeArray(ctx.sceneEntities);
   
   return `You are a Pyrite64 Node-Graph assistant. Generate a NodeGraphConfig JSON patch for the entity "${entityName}".
+This is a vibe-coding engine for Nintendo 64 homebrew. Users describe gameplay in plain English and you produce node graphs.
 
-RULES (non-negotiable — this runs on N64 hardware):
-- Only use these node types: ${nodeTypes.join(', ')}
+AVAILABLE NODE TYPES (only use these):
+${nodeTypes.join(', ')}
+
+NODE REFERENCE:
+Entry points (no flow-in, only flow-out):
+  OnStart         – fires once when the entity spawns
+  OnTick          – fires every frame (use sparingly on N64)
+  OnCollide       – fires when this entity collides with another; data: { "tag": string }
+  OnTimer         – fires after delay; data: { "interval": float, "repeat": bool }
+  OnAnimEnd       – fires when current animation completes
+  OnButtonPress   – fires on joypad button press (edge); data: { "button": string, "port": int }
+  OnButtonHeld    – fires every tick while button held; data: { "button": string, "port": int }
+  OnButtonRelease – fires on joypad button release; data: { "button": string, "port": int }
+
+Flow control:
+  Branch        – boolean condition split; ports: "true" / "false"
+  Sequence      – execute children in order
+  Repeat        – loop N times or forever; data: { "count": int, "forever": bool }
+  Wait          – pause coroutine; data: { "seconds": float }
+  SwitchCase    – multi-way branch; data: { "cases": string[] }
+  StateMachine  – multi-output flow based on state var; data: { "stateCount": int }; out-ports: "S0", "S1", ...
+
+Movement:
+  MoveToward    – move toward a target position; data: { "speed": float, "target": [x,y,z] }; out-ports: "arrived", "moving"
+  SetPosition   – teleport; data: { "position": [x,y,z] }
+  SetVelocity   – set velocity vector; data: { "velocity": [x,y,z] }
+
+Animation:
+  PlayAnim      – play named clip; data: { "name": string, "speed": float, "loop": bool }
+  StopAnim      – stop current animation
+  SetAnimSpeed  – change playback rate; data: { "speed": float }
+  SetAnimBlend  – crossfade blend; data: { "factor": float }
+  WaitAnimEnd   – coroutine wait until current anim finishes
+
+Spawning & destruction:
+  Spawn         – instantiate a prefab; data: { "prefab": string, "offset": [x,y,z] }
+  Destroy       – destroy this entity
+
+Audio:
+  PlaySound     – play sound by id; data: { "sound": string }
+
+Input:
+  ReadStick     – read analog stick; data: { "port": int, "deadzone": float }; value-out: X (float), Y (float)
+
+State management:
+  SetState      – set a named state var; data: { "name": string, "value": int }
+  GetState      – read a named state var; data: { "name": string }; value-out: int
+
+Values & math:
+  GetDistance    – distance between two entities; data: { "target": string }; value-out: float
+  GetPosition   – read current position; value-out: [x,y,z]
+  GetHealth     – read health; value-out: int
+  SetHealth     – set health; data: { "value": int }
+  GetScore      – read score; value-out: int
+  AddScore      – add to score; data: { "value": int }
+  MathOp        – arithmetic; data: { "op": "Add"|"Sub"|"Mul"|"Div" }; value-in: A, B; value-out: result
+  Value         – constant; data: { "value": number|string }
+  Compare       – compare two values; data: { "op": "="|">"|"<"|">="|"<="|"!=" }
+  CompBool      – boolean AND/OR; data: { "op": "AND"|"OR" }
+
+Visibility & scene:
+  SetVisible    – show/hide entity; data: { "visible": bool }
+  SceneLoad     – load a scene; data: { "scene": string }
+
+Misc:
+  Func          – call a named function; data: { "name": string }
+  Arg           – function argument
+  Note          – comment (no runtime effect)
+  DebugLog      – print to console; data: { "message": string }
+
+N64 JOYPAD BUTTONS:
+  A, B, Z, Start, D-Up, D-Down, D-Left, D-Right, L, R, C-Up, C-Down, C-Left, C-Right
+
+RULES (non-negotiable — N64 hardware constraints):
 - No heap allocations. No dynamic strings. No recursion.
+- Keep graphs small: prefer 3–15 nodes. The N64 runs at 30fps with ~3% CPU for scripts.
 - Animation names must be one of: ${animations.join(', ') || 'none'}
 - Sound ids must be one of: ${sounds.join(', ') || 'none'}
 - Scene entities: ${entities.join(', ') || 'none'}
-- Position values are canvas coordinates (arbitrary integers).
+- Connect flow ports (logic) top-to-bottom. Connect value ports (data) horizontally.
+- Every graph MUST start from an entry-point node (OnStart, OnTick, OnCollide, OnTimer, OnAnimEnd).
+- Position values are canvas coordinates (arbitrary integers, for layout only).
 
-OUTPUT: Respond ONLY with a single JSON object. No markdown. No explanation. Schema:
+EDGE PORT NAMES:
+- Flow out-ports: "out" (default), or named like "true"/"false" for Branch
+- Flow in-ports: "in"
+- Value out-ports: "value" or named (e.g. "arrived" for MoveToward)
+- Value in-ports: "A", "B", or named per node
+
+OUTPUT: Respond ONLY with a single JSON object. No markdown fences. No explanation. Schema:
 {
   "nodes": [{ "id": string, "type": string, "position": [number, number], "data": {} }],
   "edges": [{ "from": string, "fromPort": string, "to": string, "toPort": string }]

@@ -39,8 +39,17 @@ cmake --build --preset <preset>
 ```
 
 Where `<preset>` is replaced with the CMake preset name corresponding to your system:
-- `linux` for Linux systems
-- `windows-gcc` for Windows systems with MSYS2
+- Linux:
+	- `linux-release` (default optimized build)
+	- `linux-debug` (debug symbols, no sanitizers)
+	- `linux-asan` (debug + Address/UB sanitizers)
+- Windows (MSYS2):
+	- `windows-gcc-release`
+	- `windows-gcc-debug`
+
+Legacy aliases are still available:
+- `linux` → `linux-release`
+- `windows-gcc` → `windows-gcc-release`
 
 Once the build is finished, a program called `pyrite64` (or `pyrite64.exe`) should be placed in the root directory of the repo.<br>
 The program itself can be placed anywhere on the system, however the `./data` and `./n64` directories must stay next to it.

@@ -7,6 +7,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(PYRITE_ENABLE_CCACHE "Use ccache for faster incremental builds" ON)
+option(PYRITE_ENABLE_IPO "Enable interprocedural optimization for release builds" ON)
+option(PYRITE_ENABLE_SANITIZERS "Enable Address+UB sanitizers (GCC/Clang)" OFF)
+option(PYRITE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+
+if(PYRITE_ENABLE_CCACHE)
+    find_program(CCACHE_PROGRAM ccache)
+    if(CCACHE_PROGRAM)
+        set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+    endif()
+endif()
+
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR
         "In-source builds are disabled.\n"
@@ -15,10 +28,6 @@ endif()
 
 # set(SDL_SHARED ON)
 # set(SDL_STATIC ON)
-
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O2")
-# debug, disable LTO
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-lto")
 
 set(SDL_SHARED_DEFAULT OFF)
 set(BUILD_SHARED_LIBS off)
@@ -197,7 +206,6 @@ add_executable(pyrite64 src/main.cpp
         src/project/component/types/compLight.cpp
         src/project/component/types/compCamera.cpp
         src/editor/imgui/helper.cpp
-        src/editor/imgui/helper.cpp
         n64/engine/include/scene/objectFlags.h
         src/utils/fs.cpp
         src/project/component/types/compCollMesh.cpp
@@ -260,6 +268,37 @@ target_include_directories(pyrite64 PRIVATE
 
 target_compile_definitions(pyrite64 PRIVATE "PYRITE_VERSION=\"${PROJECT_VERSION}\"")
 target_compile_definitions(pyrite64 PRIVATE IMGUI_DEFINE_MATH_OPERATORS GLM_FORCE_QUAT_DATA_XYZW)
+
+if(MSVC)
+    target_compile_options(pyrite64 PRIVATE /W4 /permissive-)
+    if(PYRITE_WARNINGS_AS_ERRORS)
+        target_compile_options(pyrite64 PRIVATE /WX)
+    endif()
+else()
+    target_compile_options(pyrite64 PRIVATE -Wall -Wextra -Wpedantic)
+    if(PYRITE_WARNINGS_AS_ERRORS)
+        target_compile_options(pyrite64 PRIVATE -Werror)
+    endif()
+endif()
+
+if(PYRITE_ENABLE_SANITIZERS)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(pyrite64 PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(pyrite64 PRIVATE -fsanitize=address,undefined)
+    else()
+        message(WARNING "PYRITE_ENABLE_SANITIZERS is enabled but the active compiler is not GCC/Clang")
+    endif()
+endif()
+
+if(PYRITE_ENABLE_IPO AND CMAKE_BUILD_TYPE STREQUAL "Release")
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT PYRITE_IPO_SUPPORTED OUTPUT PYRITE_IPO_ERROR)
+    if(PYRITE_IPO_SUPPORTED)
+        set_property(TARGET pyrite64 PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(WARNING "IPO/LTO not enabled: ${PYRITE_IPO_ERROR}")
+    endif()
+endif()
 
 set_target_properties(pyrite64 PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")
 

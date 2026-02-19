@@ -77,6 +77,7 @@ namespace Project::Component
   MAKE_COMP(Culling)
   MAKE_COMP(NodeGraph)
   MAKE_COMP(AnimModel)
+  MAKE_COMP(Outline)
 
   constexpr std::array TABLE{
     CompInfo{
@@ -202,6 +203,17 @@ namespace Project::Component
       .funcSerialize = AnimModel::serialize,
       .funcDeserialize = AnimModel::deserialize,
       .funcBuild = AnimModel::build
+    },
+    CompInfo{
+      .id = 11,
+      .icon = ICON_MDI_BORDER_OUTSIDE " ",
+      .name = "Outline",
+      .funcInit = Outline::init,
+      .funcDraw = Outline::draw,
+      .funcDrawPost3D = Outline::draw3D,
+      .funcSerialize = Outline::serialize,
+      .funcDeserialize = Outline::deserialize,
+      .funcBuild = Outline::build
     }
   };
 

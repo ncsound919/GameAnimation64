@@ -1,4 +1,4 @@
-name: Windows (MSYS2 UCRT64)
+name: Editor Build
 
 on:
   push:
@@ -14,6 +14,10 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [windows-gcc-release, windows-gcc-debug]
 
     defaults:
       run:
@@ -39,16 +43,16 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset windows-gcc
+          cmake --preset ${{ matrix.preset }}
 
       - name: Build
         run: |
-          cmake --build --preset windows-gcc
+          cmake --build --preset ${{ matrix.preset }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pyrite64-windows
+          name: pyrite64-${{ matrix.preset }}
           include-hidden-files: true
           path: |
             pyrite64.exe
@@ -58,6 +62,10 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [linux-release, linux-debug]
 
     steps:
       - name: Checkout repository
@@ -75,16 +83,16 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset linux
+          cmake --preset ${{ matrix.preset }}
 
       - name: Build
         run: |
-          cmake --build --preset linux
+          cmake --build --preset ${{ matrix.preset }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pyrite64-linux
+          name: pyrite64-${{ matrix.preset }}
           include-hidden-files: true
           path: |
             pyrite64

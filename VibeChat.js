@@ -1,0 +1,400 @@
+/**
+ * VibeChat.ts
+ * Right-panel chat interface for the Vibe Coding Dashboard.
+ *
+ * Responsibilities:
+ *  - Chat history display (user / assistant / system messages)
+ *  - Text input + quick-prompt chips
+ *  - Calls VibeNode.generate() and renders the returned NodeGraphConfig patch
+ *  - "Apply Patch" button injects the patch into the live node graph
+ *  - Context chips show the active entity / scene / available node types
+ *  - Typing indicator during API calls
+ *  - Emits events: patchApply, contextChange
+ */
+import { VibeNode } from './VibeNode.js';
+// ─── Quick prompt suggestions (prefixed per category) ─────────────────────────
+const QUICK_PROMPTS = [
+    'Chase player on enter',
+    'Patrol between waypoints',
+    'Play idle anim on tick',
+    'Jump when grounded',
+    'Play hit sound on collide',
+    'Destroy self after 3s',
+    'Rotate 90° every second',
+    'Fade out and despawn',
+];
+// ─── VibeChat ─────────────────────────────────────────────────────────────────
+export class VibeChat {
+    constructor(initialContext, pool) {
+        this.agentPool = null;
+        this.messages = [];
+        this.handlers = {};
+        this.isThinking = false;
+        this.activeAgentRoles = [];
+        this.typingMsgId = null;
+        this.context = { ...initialContext };
+        if (pool) {
+            this.agentPool = pool;
+            pool.on('agentStatus', (e) => this.onAgentStatus(e.role, e.status));
+        }
+        this.vibeNode = new VibeNode({
+            onResult: (patch) => this.handleResult(patch),
+            onError: (msg) => this.handleError(msg),
+        });
+        this.el = this.buildDOM();
+        this.renderContextBar();
+        this.pushSystem('Vibe engine ready. Describe behavior in plain English and I\'ll generate node graph logic for you.');
+    }
+    // ── Public API ─────────────────────────────────────────────────────────────
+    on(event, handler) {
+        this.handlers[event] = handler;
+        return this;
+    }
+    /** Update which entity / scene / node types are in context. */
+    updateContext(ctx) {
+        this.context = { ...this.context, ...ctx };
+        this.renderContextBar();
+    }
+    /** Mark a previously pending patch as applied (updates button state). */
+    markPatchApplied(msgId) {
+        const msg = this.messages.find(m => m.id === msgId);
+        if (!msg)
+            return;
+        msg.applied = true;
+        const btn = this.messagesEl.querySelector(`[data-msg-id="${msgId}"] .patch-apply-btn`);
+        if (btn) {
+            btn.textContent = '✓ Applied to Graph';
+            btn.classList.add('applied');
+            btn.disabled = true;
+        }
+    }
+    /** Programmatically inject a system message (e.g. from Viewport3D budget warnings). */
+    pushSystem(text) {
+        this.addMessage({ role: 'system', text });
+    }
+    /** Set the input textarea text (used by prompt library). */
+    setInput(text) {
+        if (this.inputEl) {
+            this.inputEl.value = text;
+            this.inputEl.focus();
+            this.updateRouteChip(text);
+        }
+    }
+    // ── DOM Construction ───────────────────────────────────────────────────────
+    buildDOM() {
+        const el = document.createElement('div');
+        el.id = 'vibe-chat';
+        // ── Header ───────────────────────────────────────────────────────────────
+        const header = document.createElement('div');
+        header.className = 'chat-header';
+        header.innerHTML = `
+      <div class="chat-header-icon">✦</div>
+      <div class="chat-header-info">
+        <div class="chat-header-title">Vibe Coder</div>
+        <div class="chat-header-sub" id="chat-status-sub">claude-sonnet-4-6 · Ready</div>
+      </div>
+      <div class="chat-status-dot" id="chat-status-dot"></div>
+    `;
+        el.appendChild(header);
+        this.statusDot = header.querySelector('#chat-status-dot');
+        this.statusSub = header.querySelector('#chat-status-sub');
+        // ── Context bar ───────────────────────────────────────────────────────────
+        const ctxBar = document.createElement('div');
+        ctxBar.className = 'chat-context-bar';
+        ctxBar.id = 'chat-ctx-bar';
+        el.appendChild(ctxBar);
+        this.ctxBarEl = ctxBar;
+        // ── Messages ──────────────────────────────────────────────────────────────
+        const msgs = document.createElement('div');
+        msgs.className = 'chat-messages';
+        msgs.id = 'chat-messages';
+        el.appendChild(msgs);
+        this.messagesEl = msgs;
+        // ── Input area ────────────────────────────────────────────────────────────
+        const inputArea = document.createElement('div');
+        inputArea.className = 'chat-input-area';
+        // Quick prompts
+        const quickBar = document.createElement('div');
+        quickBar.className = 'quick-prompts';
+        QUICK_PROMPTS.forEach(prompt => {
+            const chip = document.createElement('button');
+            chip.className = 'quick-chip';
+            chip.textContent = prompt;
+            chip.addEventListener('click', () => {
+                this.inputEl.value = prompt;
+                this.inputEl.focus();
+                this.autoGrow();
+            });
+            quickBar.appendChild(chip);
+        });
+        inputArea.appendChild(quickBar);
+        // Input row
+        const inputRow = document.createElement('div');
+        inputRow.className = 'chat-input-row';
+        const textarea = document.createElement('textarea');
+        textarea.className = 'chat-input-box';
+        textarea.placeholder = 'Describe the behavior you want… (e.g. "chase the player when within 5 units")';
+        textarea.rows = 1;
+        textarea.addEventListener('input', () => { this.autoGrow(); this.updateRouteChip(textarea.value); });
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.submit();
+            }
+        });
+        this.inputEl = textarea;
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'chat-send-btn';
+        sendBtn.title = 'Send (Enter)';
+        sendBtn.innerHTML = '▶';
+        sendBtn.addEventListener('click', () => this.submit());
+        this.sendBtn = sendBtn;
+        inputRow.appendChild(textarea);
+        inputRow.appendChild(sendBtn);
+        inputArea.appendChild(inputRow);
+        // Route-preview chip (shows which agents will handle the input)
+        const routeChip = document.createElement('div');
+        routeChip.className = 'route-preview-chip hidden';
+        routeChip.title = 'Agents that will process this prompt';
+        inputArea.appendChild(routeChip);
+        this.routeChip = routeChip;
+        el.appendChild(inputArea);
+        return el;
+    }
+    // ── Context bar renderer ───────────────────────────────────────────────────
+    renderContextBar() {
+        this.ctxBarEl.innerHTML = '';
+        const addChip = (icon, label, cls, onClick) => {
+            const chip = document.createElement('div');
+            chip.className = `context-chip ${cls}`;
+            chip.innerHTML = `<span>${icon}</span><span>${label}</span>`;
+            if (onClick)
+                chip.addEventListener('click', onClick);
+            this.ctxBarEl.appendChild(chip);
+        };
+        addChip('◈', this.context.entityName || 'No entity', 'entity');
+        if (this.context.sceneEntities.length > 0) {
+            addChip('⬡', `Scene (${this.context.sceneEntities.length})`, 'scene');
+        }
+        if (this.context.availableNodeTypes.length > 0) {
+            addChip('⋮', `${this.context.availableNodeTypes.length} node types`, 'node');
+        }
+        if (this.context.animations.length > 0) {
+            addChip('▶', `${this.context.animations.length} anims`, 'node');
+        }
+    }
+    // ── Message management ─────────────────────────────────────────────────────
+    addMessage(opts) {
+        const msg = {
+            id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            role: opts.role,
+            text: opts.text,
+            timestamp: new Date(),
+            patch: opts.patch,
+            applied: false,
+        };
+        this.messages.push(msg);
+        this.renderMessage(msg);
+        this.scrollToBottom();
+        return msg;
+    }
+    renderMessage(msg) {
+        const wrap = document.createElement('div');
+        wrap.className = `chat-msg ${msg.role}`;
+        wrap.dataset.msgId = msg.id;
+        const bubble = document.createElement('div');
+        bubble.className = 'msg-bubble';
+        // Escape HTML to prevent injection; support **bold** and `code` via simple regex
+        bubble.innerHTML = this.renderText(msg.text);
+        // Patch preview for assistant messages that carry a NodeGraphConfig
+        if (msg.patch && msg.role === 'assistant') {
+            bubble.appendChild(this.buildPatchPreview(msg));
+        }
+        wrap.appendChild(bubble);
+        // Timestamp metadata
+        if (msg.role !== 'system') {
+            const meta = document.createElement('div');
+            meta.className = 'msg-meta';
+            meta.textContent = this.formatTime(msg.timestamp);
+            wrap.appendChild(meta);
+        }
+        this.messagesEl.appendChild(wrap);
+    }
+    buildPatchPreview(msg) {
+        const preview = document.createElement('div');
+        preview.className = 'msg-patch-preview';
+        const nodeCount = msg.patch.nodes.length;
+        const edgeCount = msg.patch.edges.length;
+        preview.innerHTML = `
+      <div class="patch-preview-header">
+        <span>↯ Node Graph Patch</span>
+        <span>${nodeCount} nodes · ${edgeCount} edges</span>
+      </div>
+      <div class="patch-preview-body">${this.escapeHTML(JSON.stringify(msg.patch, null, 2))}</div>
+      <button class="patch-apply-btn${msg.applied ? ' applied' : ''}"
+              ${msg.applied ? 'disabled' : ''}
+              data-msg-id="${msg.id}">
+        ${msg.applied ? '✓ Applied to Graph' : '↯ Apply Patch to Graph'}
+      </button>
+    `;
+        preview.querySelector('.patch-apply-btn')?.addEventListener('click', () => {
+            this.handlers.patchApply?.(msg.patch, msg.id);
+        });
+        return preview;
+    }
+    // ── Submit flow ────────────────────────────────────────────────────────────
+    async submit() {
+        const text = this.inputEl.value.trim();
+        if (!text || this.isThinking)
+            return;
+        // Clear input + route chip
+        this.inputEl.value = '';
+        this.autoGrow();
+        this.routeChip.classList.add('hidden');
+        // Show user message
+        this.addMessage({ role: 'user', text });
+        // Set thinking state
+        this.setThinking(true);
+        // Show typing indicator
+        const typingId = this.showTypingIndicator();
+        this.typingMsgId = typingId;
+        if (this.agentPool) {
+            try {
+                const result = await this.agentPool.dispatch(text, this.context);
+                this.removeTypingIndicator(typingId);
+                this.handlePoolResult(result);
+            }
+            catch (err) {
+                this.removeTypingIndicator(typingId);
+                this.handleError(err instanceof Error ? err.message : String(err));
+            }
+        }
+        else {
+            try {
+                await this.vibeNode.generate(text, this.context);
+                // Result handled by onResult callback
+            }
+            catch (err) {
+                this.removeTypingIndicator(typingId);
+                this.handleError(err instanceof Error ? err.message : String(err));
+            }
+        }
+    }
+    handlePoolResult(result) {
+        this.setThinking(false);
+        this.activeAgentRoles = [];
+        const { merged, succeeded, failed, totalMs } = result;
+        const agentTags = succeeded.map(r => `<span class="agent-tag agent-tag--${r}">${r}</span>`).join(' ');
+        const failNote = failed.length ? ` <em>(${failed.join(', ')} failed)</em>` : '';
+        const nodeNames = merged.nodes.map(n => `**${n.type}**`).slice(0, 3).join(', ');
+        const more = merged.nodes.length > 3 ? ` +${merged.nodes.length - 3} more` : '';
+        const text = `[${totalMs}ms] ${agentTags}${failNote} Generated ${merged.nodes.length} nodes (${nodeNames}${more}) with ${merged.edges.length} connections.`;
+        this.addMessage({ role: 'assistant', text, patch: merged });
+    }
+    onAgentStatus(role, status) {
+        if (status === 'thinking') {
+            if (!this.activeAgentRoles.includes(role))
+                this.activeAgentRoles.push(role);
+        }
+        else {
+            this.activeAgentRoles = this.activeAgentRoles.filter(r => r !== role);
+        }
+        if (this.isThinking && this.activeAgentRoles.length > 0) {
+            this.statusSub.textContent = `${this.activeAgentRoles.join(' + ')} · thinking…`;
+        }
+        else if (this.isThinking) {
+            this.statusSub.textContent = 'claude-sonnet-4-6 · Thinking…';
+        }
+    }
+    updateRouteChip(text) {
+        if (!this.agentPool || !text.trim()) {
+            this.routeChip.classList.add('hidden');
+            return;
+        }
+        const roles = this.agentPool.route(text);
+        if (roles.length === 0) {
+            this.routeChip.classList.add('hidden');
+            return;
+        }
+        this.routeChip.classList.remove('hidden');
+        this.routeChip.innerHTML = '⚡ ' + roles.map(r => `<span class="agent-tag agent-tag--${r}">${r}</span>`).join(' ');
+    }
+    handleResult(patch) {
+        if (this.typingMsgId)
+            this.removeTypingIndicator(this.typingMsgId);
+        this.setThinking(false);
+        const nodeNames = patch.nodes.map(n => `**${n.type}**`).slice(0, 3).join(', ');
+        const more = patch.nodes.length > 3 ? ` +${patch.nodes.length - 3} more` : '';
+        const text = `Generated ${patch.nodes.length} nodes (${nodeNames}${more}) with ${patch.edges.length} connections. Review the patch and apply it to your node graph.`;
+        this.addMessage({ role: 'assistant', text, patch });
+    }
+    handleError(msg) {
+        if (this.typingMsgId)
+            this.removeTypingIndicator(this.typingMsgId);
+        this.setThinking(false);
+        this.addMessage({ role: 'assistant', text: `⚠ Error: ${msg}` });
+    }
+    // ── Typing indicator ───────────────────────────────────────────────────────
+    showTypingIndicator() {
+        const id = `typing_${Date.now()}`;
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-msg assistant typing';
+        wrap.id = id;
+        wrap.innerHTML = `
+      <div class="msg-bubble">
+        <div class="typing-dots">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+    `;
+        this.messagesEl.appendChild(wrap);
+        this.scrollToBottom();
+        return id;
+    }
+    removeTypingIndicator(id) {
+        this.messagesEl.querySelector(`#${id}`)?.remove();
+    }
+    // ── State helpers ──────────────────────────────────────────────────────────
+    setThinking(val) {
+        this.isThinking = val;
+        this.sendBtn.disabled = val;
+        this.statusDot.classList.toggle('thinking', val);
+        if (!val) {
+            this.activeAgentRoles = [];
+            this.statusSub.textContent = 'claude-sonnet-4-6 · Ready';
+        }
+        else if (this.activeAgentRoles.length === 0) {
+            this.statusSub.textContent = 'claude-sonnet-4-6 · Thinking…';
+        }
+    }
+    autoGrow() {
+        this.inputEl.style.height = 'auto';
+        this.inputEl.style.height = `${Math.min(this.inputEl.scrollHeight, 120)}px`;
+    }
+    scrollToBottom() {
+        requestAnimationFrame(() => {
+            this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+        });
+    }
+    // ── Text utils ─────────────────────────────────────────────────────────────
+    renderText(raw) {
+        let s = this.escapeHTML(raw);
+        // **bold**
+        s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // `code`
+        s = s.replace(/`(.+?)`/g, '<code style="font-family:var(--font-mono); font-size:10px; background:rgba(0,212,255,0.10); padding:1px 4px; border-radius:3px; color:var(--neon-cyan);">$1</code>');
+        return s;
+    }
+    escapeHTML(s) {
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+    formatTime(d) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+}
