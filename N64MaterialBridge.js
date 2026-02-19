@@ -7,8 +7,12 @@
  *  - standard:     PBR-like preview (editor default)
  *  - cartoon:      MeshToonMaterial with cel-shade bands (matches N64 combiner trick)
  *  - n64-accurate: Quantized vertex colors, no mip-maps, nearest filtering
+ *
+ * Cartoon mode can be parameterized by a CartoonStyleConfig to produce
+ * different aesthetics (anime, comic book, watercolor, etc.).
  */
 import * as THREE from 'three';
+import { getCartoonStyle, getDefaultCartoonStyle } from './CartoonStylePresets.js';
 // ─── N64MaterialBridge ────────────────────────────────────────────────────────
 export class N64MaterialBridge {
     constructor() {
@@ -66,13 +70,18 @@ export class N64MaterialBridge {
         return mat;
     }
     // ── Mode converters ────────────────────────────────────────────────────────
-    /** Convert any material to cartoon mode (cel-shaded). */
-    toCartoon(source) {
-        const key = `cel_${source.uuid}`;
+    /**
+     * Convert any material to cartoon mode (cel-shaded).
+     * @param source  The source material to convert
+     * @param styleId Optional cartoon style id — defaults to 'classic-cel'
+     */
+    toCartoon(source, styleId) {
+        const style = (styleId ? getCartoonStyle(styleId) : undefined) ?? getDefaultCartoonStyle();
+        const key = `cel_${style.id}_${source.uuid}`;
         if (this.cartoonCache.has(key))
             return this.cartoonCache.get(key);
         const toon = new THREE.MeshToonMaterial();
-        toon.gradientMap = this.buildGradientMap(4); // 4 bands default
+        toon.gradientMap = this.buildGradientMap(style.bands);
         if (source instanceof THREE.MeshPhongMaterial || source instanceof THREE.MeshStandardMaterial) {
             toon.color.copy(source.color);
             if ('map' in source)
@@ -80,6 +89,13 @@ export class N64MaterialBridge {
         }
         toon.transparent = source.transparent;
         toon.side = source.side;
+        // Apply style-specific saturation shift to the base color
+        if (style.saturation !== 1.0) {
+            const hsl = { h: 0, s: 0, l: 0 };
+            toon.color.getHSL(hsl);
+            hsl.s = Math.min(1, hsl.s * style.saturation);
+            toon.color.setHSL(hsl.h, hsl.s, hsl.l);
+        }
         this.cartoonCache.set(key, toon);
         return toon;
     }

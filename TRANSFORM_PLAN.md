@@ -102,16 +102,18 @@ pyrite64/                          ← existing repo root
 
 ---
 
-## Milestone 2: Cartoon Render Mode
+## Milestone 2: Cartoon Render Mode ✅
 
 **N64 side (C):**
-- `cel_shader.c`: single diffuse band threshold using tiny3d's combiner modes
-- `outline_pass.c`: 2-pass trick — first pass draws solid slightly scaled mesh black, second draws normal  
-- `palette_reduce.c`: quantize vertex colors to 4–8 discrete steps
+- `cel_shader.c`: ✅ RDP combiner-based cel shading with LUT palette texture
+- `outline.c`: ✅ Two-pass back-face hull technique for silhouette outlines
+- `palette_reduce.c`: ✅ Quantize vertex colors to N discrete bands with style presets
 
 **Editor side:**
-- CartoonPass.ts: Three.js EffectComposer with OutlineEffect + custom CelShader
-- Material panel gains "Cartoon Mode" toggle that syncs to N64 combiner settings
+- `CartoonPass.ts`: ✅ Multi-style post-process shader with 5 cartoon aesthetics
+- `CartoonStylePresets.ts`: ✅ Named style configurations (Classic Cel, Anime, Comic Book, Watercolor, Retro)
+- `N64MaterialBridge.ts`: ✅ Style-aware cartoon material conversion
+- Material presets in VibePresets.ts for each cartoon style
 
 ---
 
