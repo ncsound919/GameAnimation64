@@ -125,17 +125,7 @@ export class N64MaterialBridge {
 
     const mat = source.clone();
 
-    // Enforce nearest-neighbor filtering (N64 has no bilinear by default)
-    mat.traverse?.((child) => {
-      if (child instanceof THREE.Texture) {
-        child.minFilter = THREE.NearestFilter;
-        child.magFilter = THREE.NearestFilter;
-        child.generateMipmaps = false;
-        child.needsUpdate = true;
-      }
-    });
-
-    // Also apply to any mapped textures directly
+    // Apply nearest-neighbor filtering to any mapped textures directly
     if ('map' in mat && (mat as THREE.MeshPhongMaterial).map) {
       const tex = (mat as THREE.MeshPhongMaterial).map!;
       tex.minFilter = THREE.NearestFilter;
@@ -193,7 +183,14 @@ export class N64MaterialBridge {
 
   private loadTexture(path: string): THREE.Texture {
     if (this.texCache.has(path)) return this.texCache.get(path)!;
-    const tex = new THREE.TextureLoader().load(path);
+    const tex = new THREE.TextureLoader().load(
+      path,
+      undefined,
+      undefined,
+      (error) => {
+        console.error(`Failed to load texture at path "${path}".`, error);
+      },
+    );
     // N64 textures are always power-of-2 and should not mip by default
     tex.generateMipmaps = false;
     tex.minFilter       = THREE.LinearFilter;
@@ -226,5 +223,11 @@ export class N64MaterialBridge {
     this.cartoonCache.forEach(m => m.dispose());
     this.n64Cache.forEach(m => m.dispose());
     this.texCache.forEach(t => t.dispose());
+
+    // Clear caches to avoid returning disposed materials/textures after disposal.
+    this.standardCache.clear();
+    this.cartoonCache.clear();
+    this.n64Cache.clear();
+    this.texCache.clear();
   }
 }

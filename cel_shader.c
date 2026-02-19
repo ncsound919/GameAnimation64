@@ -2,6 +2,9 @@
  * cel_shader.c
  * Pyrite64 — N64 Cartoon Render Module
  *
+ * @copyright 2025 - Max Bebök
+ * @license MIT
+ *
  * Implements cel/toon shading using the RDP's color combiner.
  * Works within libdragon + tiny3d's rendering pipeline.
  *
@@ -17,6 +20,7 @@
 #include <libdragon.h>
 #include <t3d/t3d.h>
 #include <t3d/t3dmodel.h>
+#include <math.h>
 
 // ─── Palette LUT texture ──────────────────────────────────────────────────────
 
@@ -72,6 +76,7 @@ void cel_shader_begin(uint8_t bands, color_t color) {
   assertf(cel_initialized, "cel_shader_init() must be called first");
 
   // Upload LUT based on requested band count
+  // 3BAND has 3 distinct values (stark contrast), 4BAND has 4 values (smoother)
   const uint8_t *palette = (bands <= 3) ? CEL_PALETTE_3BAND : CEL_PALETTE_4BAND;
   memcpy(cel_lut_surface.buffer, palette, 8);
 
