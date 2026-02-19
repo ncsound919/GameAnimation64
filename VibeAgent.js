@@ -1,5 +1,5 @@
 /**
- * VibeAgent.ts
+ * VibeAgent.js
  * Specialized AI agents for the Pyrite64 Vibe Coding Engine.
  *
  * Each agent is an autonomous unit with:
