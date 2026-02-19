@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { N64MaterialBridge } from './N64MaterialBridge.js';
 import { CameraController } from './CameraController.js';
 import { CartoonPass } from './CartoonPass.js';
@@ -63,6 +64,9 @@ export class Viewport3D {
         this.grid = new GridHelper(this.scene);
         // Camera controller (orbit + fly)
         this.camCtrl = new CameraController(this.camera, this.renderer.domElement);
+        this.camCtrl.onCameraChange = (cam) => {
+            this.camera = cam;
+        };
         // Post-processing pipeline
         this.composer = new EffectComposer(this.renderer);
         const renderPass = new RenderPass(this.scene, this.camera);
@@ -77,6 +81,8 @@ export class Viewport3D {
         this.composer.addPass(this.cartoonPass);
         // Material bridge (Fast64 → Three.js)
         this.matBridge = new N64MaterialBridge();
+        // GLTF loader for async model loading
+        this.gltfLoader = new GLTFLoader();
         // Resize observer
         this.resizeObserver = new ResizeObserver(() => {
             // Auto-disconnect once the container is no longer in the document to avoid leaks.
@@ -279,7 +285,35 @@ export class Viewport3D {
                 const mesh = new THREE.Mesh(geo, mat);
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
-                // TODO: if data.gltfPath, trigger async GLTF load and swap geometry
+                // If a GLTF path is provided, load it asynchronously and swap geometry
+                if (data.gltfPath) {
+                    this.gltfLoader.load(data.gltfPath, (gltf) => {
+                        const loaded = gltf.scene;
+                        loaded.position.copy(mesh.position);
+                        loaded.rotation.copy(mesh.rotation);
+                        loaded.scale.copy(mesh.scale);
+                        loaded.visible = mesh.visible;
+                        loaded.name = mesh.name;
+                        loaded.traverse((child) => {
+                            if (child instanceof THREE.Mesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                                child.material = this.matBridge.createDefault();
+                            }
+                        });
+                        const parent = mesh.parent;
+                        if (parent) {
+                            parent.add(loaded);
+                            parent.remove(mesh);
+                            mesh.geometry.dispose();
+                            if (mesh.material instanceof THREE.Material) mesh.material.dispose();
+                        }
+                        this.nodeMap.set(data.id, loaded);
+                        this.scheduleBudgetCheck();
+                    }, undefined, (err) => {
+                        console.warn(`[Viewport3D] Failed to load GLTF: ${data.gltfPath}`, err);
+                    });
+                }
                 return mesh;
             }
             case 'light': {
@@ -376,7 +410,15 @@ export class Viewport3D {
     handleResize(container) {
         const w = container.clientWidth;
         const h = container.clientHeight;
-        this.camera.aspect = w / h;
+        if (this.camera instanceof THREE.PerspectiveCamera) {
+            this.camera.aspect = w / h;
+        }
+        else if (this.camera instanceof THREE.OrthographicCamera) {
+            const halfH = (this.camera.top - this.camera.bottom) / 2;
+            const aspect = w / h;
+            this.camera.left = -halfH * aspect;
+            this.camera.right = halfH * aspect;
+        }
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
         this.composer.setSize(w, h);

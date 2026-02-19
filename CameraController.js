@@ -13,6 +13,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 export class CameraController {
     constructor(camera, domElement) {
         this.mode = 'orbit';
+        this.isOrtho = false;
+        this.orthoCamera = null;
         // Fly mode state
         this.keys = new Set();
         this.flySpeed = 8.0; // units/second
@@ -20,7 +22,10 @@ export class CameraController {
         // Event handlers (stored for cleanup)
         this.keyDownHandler = null;
         this.keyUpHandler = null;
+        // Callback for when the camera instance changes (ortho toggle)
+        this.onCameraChange = undefined;
         this.camera = camera;
+        this.perspCamera = camera;
         this.domElement = domElement;
         this.orbit = new OrbitControls(camera, domElement);
         this.orbit.enableDamping = true;
@@ -54,7 +59,7 @@ export class CameraController {
         box.getCenter(center);
         box.getSize(size);
         const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = this.camera.fov * (Math.PI / 180);
+        const fov = this.perspCamera.fov * (Math.PI / 180);
         const dist = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         this.orbit.target.copy(center);
         this.camera.position.copy(center).add(new THREE.Vector3(dist * 0.6, dist * 0.4, dist));
@@ -114,9 +119,32 @@ export class CameraController {
         if (this.keys.has('KeyQ'))
             this.camera.position.y -= spd;
     }
+    /** Get the current active camera. */
+    getCamera() {
+        return this.camera;
+    }
     toggleOrtho() {
-        // TODO: swap to OrthographicCamera for top/front/side views
-        console.log('[CameraController] Ortho toggle — TODO');
+        this.isOrtho = !this.isOrtho;
+        if (this.isOrtho) {
+            const aspect = this.domElement.clientWidth / this.domElement.clientHeight;
+            const dist = this.camera.position.distanceTo(this.orbit.target);
+            const halfH = dist * Math.tan(THREE.MathUtils.degToRad(this.perspCamera.fov / 2));
+            const halfW = halfH * aspect;
+            this.orthoCamera = new THREE.OrthographicCamera(-halfW, halfW, halfH, -halfH, 0.01, 500);
+            this.orthoCamera.position.copy(this.camera.position);
+            this.orthoCamera.quaternion.copy(this.camera.quaternion);
+            this.orthoCamera.zoom = 1;
+            this.orthoCamera.updateProjectionMatrix();
+            this.camera = this.orthoCamera;
+        }
+        else {
+            this.perspCamera.position.copy(this.camera.position);
+            this.perspCamera.quaternion.copy(this.camera.quaternion);
+            this.camera = this.perspCamera;
+        }
+        this.orbit.object = this.camera;
+        this.orbit.update();
+        this.onCameraChange?.(this.camera);
     }
     setView(view) {
         const target = this.orbit.target.clone();

@@ -142,9 +142,12 @@ export abstract class VibeAgent {
   // ── Private ───────────────────────────────────────────────────────────────
 
   private async callAPI(task: AgentTask): Promise<NodeGraphConfig> {
+    // Browser-safe API key access: check globalThis.process.env, window, localStorage
     const apiKey = (typeof globalThis !== 'undefined' && (globalThis as any).process?.env?.ANTHROPIC_API_KEY)
       ? (globalThis as any).process.env.ANTHROPIC_API_KEY as string
-      : undefined;
+      : (typeof window !== 'undefined' ? (window as any).ANTHROPIC_API_KEY : undefined)
+        || (typeof localStorage !== 'undefined' ? localStorage.getItem('anthropic_key') : undefined)
+        || '';
     const ctx = task.context;
 
     const systemPrompt = [
@@ -167,7 +170,7 @@ export abstract class VibeAgent {
       }) as Promise<NodeGraphConfig>;
     }
 
-    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set — set via localStorage.setItem("anthropic_key", "sk-…") or window.ANTHROPIC_API_KEY');
 
     const res = await fetch(ANTHROPIC_ENDPOINT, {
       method: 'POST',

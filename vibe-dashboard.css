@@ -1960,3 +1960,49 @@ body::before {
   box-shadow: 0 4px 20px rgba(157, 78, 221, 0.5);
   transform: translateY(-1px);
 }
+
+/* ─── UI Refinements ───────────────────────────────────────────────────────── */
+
+/* Improved toast fade-out animation */
+.vibe-toast {
+  animation: toast-in 0.25s ease forwards, toast-out 0.35s ease 3s forwards;
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-8px) scale(0.95); }
+}
+
+/* Focus ring for keyboard accessibility */
+.btn:focus-visible,
+.vp-btn:focus-visible,
+.chat-send-btn:focus-visible,
+.quick-chip:focus-visible,
+.tl-btn:focus-visible,
+.tweak-btn:focus-visible {
+  outline: 2px solid var(--neon-cyan);
+  outline-offset: 2px;
+}
+
+/* Smooth scrollbar transition for chat messages */
+.chat-messages {
+  scroll-behavior: smooth;
+}
+
+/* Active entity highlight pulse in sidebar */
+.sidebar-item.active {
+  animation: sidebar-active-pulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes sidebar-active-pulse {
+  from { box-shadow: inset 2px 0 0 var(--neon-purple); }
+  to   { box-shadow: inset 2px 0 0 var(--neon-cyan); }
+}
+
+/* Disabled send button tooltip style */
+.chat-send-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { N64MaterialBridge } from './N64MaterialBridge.js';
 import { CameraController } from './CameraController.js';
 import { CartoonPass } from './CartoonPass.js';
@@ -66,13 +67,14 @@ export interface SceneNodeData {
 export class Viewport3D {
   private renderer:    THREE.WebGLRenderer;
   private scene:       THREE.Scene;
-  private camera:      THREE.PerspectiveCamera;
+  private camera:      THREE.PerspectiveCamera | THREE.OrthographicCamera;
   private composer:    EffectComposer;
   private outlinePass: OutlinePass;
   private cartoonPass: CartoonPass;
   readonly grid:       GridHelper;
   private camCtrl:     CameraController;
   private matBridge:   N64MaterialBridge;
+  private gltfLoader:  GLTFLoader;
 
   private nodeMap   = new Map<string, THREE.Object3D>();
   private selected  = new Set<string>();
@@ -119,6 +121,9 @@ export class Viewport3D {
 
     // Camera controller (orbit + fly)
     this.camCtrl = new CameraController(this.camera, this.renderer.domElement);
+    this.camCtrl.onCameraChange = (cam) => {
+      this.camera = cam;
+    };
 
     // Post-processing pipeline
     this.composer    = new EffectComposer(this.renderer);
@@ -141,6 +146,9 @@ export class Viewport3D {
 
     // Material bridge (Fast64 → Three.js)
     this.matBridge = new N64MaterialBridge();
+
+    // GLTF loader for async model loading
+    this.gltfLoader = new GLTFLoader();
 
     // Resize observer
     this.resizeObserver = new ResizeObserver(() => {
@@ -360,7 +368,48 @@ export class Viewport3D {
         const mesh = new THREE.Mesh(geo, mat);
         mesh.castShadow    = true;
         mesh.receiveShadow = true;
-        // TODO: if data.gltfPath, trigger async GLTF load and swap geometry
+
+        // If a GLTF path is provided, load it asynchronously and swap geometry
+        if (data.gltfPath) {
+          this.gltfLoader.load(
+            data.gltfPath,
+            (gltf) => {
+              const loaded = gltf.scene;
+              // Copy transform from placeholder
+              loaded.position.copy(mesh.position);
+              loaded.rotation.copy(mesh.rotation);
+              loaded.scale.copy(mesh.scale);
+              loaded.visible = mesh.visible;
+              loaded.name = mesh.name;
+
+              // Apply shadows and N64 materials to loaded meshes
+              loaded.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                  child.castShadow = true;
+                  child.receiveShadow = true;
+                  child.material = this.matBridge.createDefault();
+                }
+              });
+
+              // Swap in scene: replace placeholder with loaded model
+              const parent = mesh.parent;
+              if (parent) {
+                parent.add(loaded);
+                parent.remove(mesh);
+                mesh.geometry.dispose();
+                if (mesh.material instanceof THREE.Material) mesh.material.dispose();
+              }
+
+              // Update node map to reference the loaded model
+              this.nodeMap.set(data.id, loaded);
+              this.scheduleBudgetCheck();
+            },
+            undefined,
+            (err) => {
+              console.warn(`[Viewport3D] Failed to load GLTF: ${data.gltfPath}`, err);
+            },
+          );
+        }
         return mesh;
       }
       case 'light': {
@@ -478,7 +527,14 @@ export class Viewport3D {
   private handleResize(container: HTMLElement): void {
     const w = container.clientWidth;
     const h = container.clientHeight;
-    this.camera.aspect = w / h;
+    if (this.camera instanceof THREE.PerspectiveCamera) {
+      this.camera.aspect = w / h;
+    } else if (this.camera instanceof THREE.OrthographicCamera) {
+      const halfH = (this.camera.top - this.camera.bottom) / 2;
+      const aspect = w / h;
+      this.camera.left = -halfH * aspect;
+      this.camera.right = halfH * aspect;
+    }
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
     this.composer.setSize(w, h);

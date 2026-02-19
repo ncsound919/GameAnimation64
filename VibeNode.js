@@ -15,12 +15,16 @@
 // ─── IPC channel names (must match main process handlers) ────────────────────
 export const VIBE_IPC = {
     GENERATE: 'vibe:generate',
+    CHAT: 'vibe:chat',
     RESULT: 'vibe:result',
+    CHAT_RESULT: 'vibe:chat-result',
     ERROR: 'vibe:error',
 };
 export class VibeNode {
     constructor(opts) {
         this.opts = opts;
+        /** Conversation history for multi-turn chat workflow. */
+        this.chatHistory = [];
     }
     /**
      * Submit a natural-language prompt to the Anthropic API.
@@ -40,6 +44,45 @@ export class VibeNode {
             // Dev fallback: direct API call (requires ANTHROPIC_API_KEY in env)
             await this.directGenerate(prompt, context);
         }
+    }
+    // ── Chat-based workflow ────────────────────────────────────────────────────
+    /**
+     * Send a chat message in a multi-turn conversation.
+     */
+    async chat(prompt, context, chatOpts) {
+        const userMsg = {
+            id: generateId(),
+            role: 'user',
+            content: prompt,
+            timestamp: Date.now(),
+        };
+        this.chatHistory.push(userMsg);
+        chatOpts.onMessage(userMsg);
+        if (typeof window !== 'undefined' && window.electronAPI) {
+            try {
+                const result = await window.electronAPI.invoke(VIBE_IPC.CHAT, {
+                    prompt,
+                    context,
+                    history: this.chatHistory.map(m => ({ role: m.role, content: m.content })),
+                });
+                this.handleChatResponse(result, chatOpts);
+            }
+            catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                chatOpts.onError(message);
+            }
+        }
+        else {
+            await this.directChat(prompt, context, chatOpts);
+        }
+    }
+    /** Get the full chat history. */
+    getChatHistory() {
+        return this.chatHistory;
+    }
+    /** Clear chat history to start a fresh conversation. */
+    clearChatHistory() {
+        this.chatHistory = [];
     }
     // ── Private ────────────────────────────────────────────────────────────────
     async directGenerate(prompt, context) {
@@ -103,6 +146,85 @@ export class VibeNode {
             const message = e instanceof Error ? e.message : String(e);
             this.opts.onError(message);
         }
+    }
+    async directChat(prompt, context, chatOpts) {
+        const systemPrompt = buildChatSystemPrompt(context);
+        // Browser-safe API key access (same pattern as directGenerate)
+        const apiKey = (typeof window !== 'undefined' ? window.ANTHROPIC_API_KEY : undefined)
+            || (typeof localStorage !== 'undefined' ? localStorage.getItem('anthropic_key') : undefined)
+            || '';
+        if (!apiKey) {
+            console.warn('ANTHROPIC_API_KEY not set — API call will fail with 401.');
+        }
+        try {
+            const messages = this.chatHistory.map(m => ({
+                role: m.role,
+                content: m.content,
+            }));
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify({
+                    model: 'claude-sonnet-4-6',
+                    max_tokens: 4096,
+                    system: systemPrompt,
+                    messages,
+                }),
+            });
+            if (!res.ok) {
+                const rawBody = await res.text();
+                let apiMessage = '';
+                try {
+                    const parsed = JSON.parse(rawBody);
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.error && typeof parsed.error.message === 'string') {
+                            apiMessage = parsed.error.message;
+                        }
+                        else if (typeof parsed.message === 'string') {
+                            apiMessage = parsed.message;
+                        }
+                    }
+                }
+                catch { /* not JSON */ }
+                const base = `Anthropic API request failed with status ${res.status}`;
+                const detail = apiMessage || rawBody || res.statusText;
+                throw new Error(detail ? `${base}: ${detail}` : base);
+            }
+            const data = await res.json();
+            const text = data.content
+                .filter((b) => b.type === 'text')
+                .map((b) => b.text)
+                .join('');
+            this.handleChatResponse(text, chatOpts);
+        }
+        catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            chatOpts.onError(message);
+        }
+    }
+    handleChatResponse(text, chatOpts) {
+        const assistantMsg = {
+            id: generateId(),
+            role: 'assistant',
+            content: text,
+            timestamp: Date.now(),
+        };
+        const json = extractJSON(text);
+        if (json) {
+            try {
+                const patch = JSON.parse(json);
+                validatePatch(patch);
+                assistantMsg.patch = patch;
+                chatOpts.onResult(patch);
+            }
+            catch { /* JSON but not a valid patch — ok */ }
+        }
+        this.chatHistory.push(assistantMsg);
+        chatOpts.onMessage(assistantMsg);
     }
 }
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -228,7 +350,7 @@ OUTPUT: Respond ONLY with a single JSON object. No markdown fences. No explanati
   "edges": [{ "from": string, "fromPort": string, "to": string, "toPort": string }]
 }`.trim();
 }
-function extractJSON(text) {
+export function extractJSON(text) {
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
     if (start === -1 || end === -1)
@@ -244,4 +366,38 @@ function validatePatch(patch) {
         if (!node.id || !node.type)
             throw new Error(`Invalid node: ${JSON.stringify(node)}`);
     }
+}
+function buildChatSystemPrompt(ctx) {
+    const entityName = sanitize(ctx.entityName);
+    const nodeTypes = sanitizeArray(ctx.availableNodeTypes);
+    const animations = sanitizeArray(ctx.animations);
+    const sounds = sanitizeArray(ctx.sounds);
+    const entities = sanitizeArray(ctx.sceneEntities);
+    return `You are a Pyrite64 Vibe Coding assistant. You help users build N64 game behavior through conversation.
+You can explain, ask clarifying questions, and generate NodeGraphConfig patches when the user's intent is clear.
+
+CONTEXT:
+- Entity: "${entityName}"
+- Available node types: ${nodeTypes.join(', ')}
+- Animations: ${animations.join(', ') || 'none'}
+- Sounds: ${sounds.join(', ') || 'none'}
+- Scene entities: ${entities.join(', ') || 'none'}
+
+N64 HARDWARE RULES (non-negotiable):
+- Only use the listed node types.
+- No heap allocations, no dynamic strings, no recursion.
+- Animation/sound names must match exactly.
+
+RESPONSE FORMAT:
+- You may respond with plain text explanations, questions, or suggestions.
+- When you generate a node graph, embed it as a JSON object in your response.
+- The JSON schema for patches:
+  { "nodes": [{ "id": string, "type": string, "position": [number, number], "data": {} }],
+    "edges": [{ "from": string, "fromPort": string, "to": string, "toPort": string }] }
+- You may include explanatory text before or after the JSON.
+- Keep explanations concise — the user is looking at a small chat panel.`.trim();
+}
+/** Generate a short unique ID for chat messages. */
+function generateId() {
+    return `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }

@@ -16,8 +16,9 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/",
+        "three/examples/jsm/": "https://unpkg.com/three@0.183.0/examples/jsm/"
       }
     }
   </script>
@@ -86,12 +87,15 @@
 
       onBuild() {
         console.log('[Host] Build requested');
-        setTimeout(() => dashboard.toast('Build succeeded ✓', 'success'), 1800);
+        dashboard.toast('Build started — compiling scene…', 'info');
+        setTimeout(() => dashboard.toast('Compiling node graphs…', 'info', 1500), 800);
+        setTimeout(() => dashboard.toast('Build succeeded ✓', 'success'), 2400);
       },
 
       onRun() {
         console.log('[Host] Run requested');
-        setTimeout(() => dashboard.toast('Emulator launched', 'success'), 1200);
+        dashboard.toast('Launching emulator…', 'info');
+        setTimeout(() => dashboard.toast('ROM loaded — emulator running', 'success'), 1500);
       },
     });
 

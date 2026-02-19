@@ -232,11 +232,13 @@ export class VibeNode {
     chatOpts: VibeChatOptions,
   ): Promise<void> {
     const systemPrompt = buildChatSystemPrompt(context);
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Browser-safe API key access (same pattern as directGenerate)
+    const apiKey = (typeof window !== 'undefined' ? (window as any).ANTHROPIC_API_KEY : undefined)
+      || (typeof localStorage !== 'undefined' ? localStorage.getItem('anthropic_key') : undefined)
+      || '';
 
     if (!apiKey) {
-      chatOpts.onError('ANTHROPIC_API_KEY environment variable is not set');
-      return;
+      console.warn('ANTHROPIC_API_KEY not set — API call will fail with 401.');
     }
 
     try {
@@ -495,7 +497,7 @@ RESPONSE FORMAT:
 - Keep explanations concise — the user is looking at a small chat panel.`.trim();
 }
 
-function extractJSON(text: string): string | null {
+export function extractJSON(text: string): string | null {
   const start = text.indexOf('{');
   const end   = text.lastIndexOf('}');
   if (start === -1 || end === -1) return null;

@@ -75,9 +75,12 @@ export class VibeAgent {
     }
     // ── Private ───────────────────────────────────────────────────────────────
     async callAPI(task) {
+        // Browser-safe API key access: check globalThis.process.env, window, localStorage
         const apiKey = (typeof globalThis !== 'undefined' && globalThis.process?.env?.ANTHROPIC_API_KEY)
             ? globalThis.process.env.ANTHROPIC_API_KEY
-            : undefined;
+            : (typeof window !== 'undefined' ? window.ANTHROPIC_API_KEY : undefined)
+                || (typeof localStorage !== 'undefined' ? localStorage.getItem('anthropic_key') : undefined)
+                || '';
         const ctx = task.context;
         const systemPrompt = [
             this.buildDomainPrompt(ctx),
@@ -98,7 +101,7 @@ export class VibeAgent {
             });
         }
         if (!apiKey)
-            throw new Error('ANTHROPIC_API_KEY not set');
+            throw new Error('ANTHROPIC_API_KEY not set — set via localStorage.setItem("anthropic_key", "sk-…") or window.ANTHROPIC_API_KEY');
         const res = await fetch(ANTHROPIC_ENDPOINT, {
             method: 'POST',
             headers: {
