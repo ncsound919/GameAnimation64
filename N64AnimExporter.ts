@@ -59,12 +59,10 @@ export interface ExportResult {
 export function exportClipToN64(clip: AnimClip): ExportResult {
   const warnings: string[] = [];
   const id = sanitizeIdentifier(clip.name);
-  const frameCount = Math.min(
-    Math.ceil(clip.duration * SAMPLE_RATE_FPS),
-    MAX_FRAMES,
-  );
+  const unclampedFrameCount = Math.ceil(clip.duration * SAMPLE_RATE_FPS);
+  const frameCount = Math.min(unclampedFrameCount, MAX_FRAMES);
 
-  if (frameCount >= MAX_FRAMES) {
+  if (unclampedFrameCount > MAX_FRAMES) {
     warnings.push(
       `Clip "${clip.name}" clamped to ${MAX_FRAMES} frames (${(MAX_FRAMES / SAMPLE_RATE_FPS).toFixed(1)}s). ` +
       `Original duration: ${clip.duration.toFixed(2)}s.`,

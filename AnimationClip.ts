@@ -174,6 +174,9 @@ export function validateClip(obj: unknown): void {
   if (typeof clip.duration !== 'number' || clip.duration <= 0) {
     throw new Error('AnimClip.duration must be a positive number');
   }
+  if (typeof clip.loop !== 'boolean') {
+    throw new Error('AnimClip.loop must be a boolean');
+  }
   if (!Array.isArray(clip.tracks)) {
     throw new Error('AnimClip.tracks must be an array');
   }
