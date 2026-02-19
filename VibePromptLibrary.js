@@ -1,5 +1,5 @@
 /**
- * VibePromptLibrary.ts
+ * VibePromptLibrary.js
  * Domain-specific prompt templates for Pyrite64 vibe coding.
  *
  * Each template carries a title, description, category, and a
