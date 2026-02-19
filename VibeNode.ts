@@ -81,11 +81,20 @@ export class VibeNode {
 
   private async directGenerate(prompt: string, context: VibeContext): Promise<void> {
     const systemPrompt = buildSystemPrompt(context);
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    }
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
         body:    JSON.stringify({
           model:      'claude-sonnet-4-6',
           max_tokens: 2048,
@@ -93,6 +102,29 @@ export class VibeNode {
           messages:   [{ role: 'user', content: prompt }],
         }),
       });
+
+      if (!res.ok) {
+        // Attempt to extract a useful error message from the response body.
+        const rawBody = await res.text();
+        let apiMessage = '';
+        try {
+          const parsed = JSON.parse(rawBody);
+          // Many APIs use an { error: { message } } or { message } shape for errors.
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.error && typeof parsed.error.message === 'string') {
+              apiMessage = parsed.error.message;
+            } else if (typeof parsed.message === 'string') {
+              apiMessage = parsed.message;
+            }
+          }
+        } catch {
+          // Body was not JSON; fall back to raw text.
+        }
+
+        const base = `Anthropic API request failed with status ${res.status}`;
+        const detail = apiMessage || rawBody || res.statusText;
+        throw new Error(detail ? `${base}: ${detail}` : base);
+      }
 
       const data = await res.json();
       const text = data.content
@@ -106,8 +138,9 @@ export class VibeNode {
       const patch = JSON.parse(json) as NodeGraphConfig;
       validatePatch(patch);  // throws on invalid
       this.opts.onResult(patch);
-    } catch (e: any) {
-      this.opts.onError(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      this.opts.onError(message);
     }
   }
 }
@@ -129,15 +162,41 @@ export interface VibeContext {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Sanitize a string to prevent prompt injection attacks.
+ * Removes newlines and certain control characters that could be used
+ * to inject additional instructions into the system prompt.
+ */
+function sanitize(str: string): string {
+  return str
+    .replace(/[\r\n]/g, ' ')  // Replace newlines with spaces
+    .replace(/[^\x20-\x7E]/g, '')  // Remove non-printable characters
+    .trim();
+}
+
+/**
+ * Sanitize an array of strings for safe inclusion in prompts.
+ */
+function sanitizeArray(arr: string[]): string[] {
+  return arr.map(sanitize).filter(s => s.length > 0);
+}
+
 function buildSystemPrompt(ctx: VibeContext): string {
-  return `You are a Pyrite64 Node-Graph assistant. Generate a NodeGraphConfig JSON patch for the entity "${ctx.entityName}".
+  // Sanitize all user-provided context data to prevent prompt injection
+  const entityName = sanitize(ctx.entityName);
+  const nodeTypes = sanitizeArray(ctx.availableNodeTypes);
+  const animations = sanitizeArray(ctx.animations);
+  const sounds = sanitizeArray(ctx.sounds);
+  const entities = sanitizeArray(ctx.sceneEntities);
+  
+  return `You are a Pyrite64 Node-Graph assistant. Generate a NodeGraphConfig JSON patch for the entity "${entityName}".
 
 RULES (non-negotiable — this runs on N64 hardware):
-- Only use these node types: ${ctx.availableNodeTypes.join(', ')}
+- Only use these node types: ${nodeTypes.join(', ')}
 - No heap allocations. No dynamic strings. No recursion.
-- Animation names must be one of: ${ctx.animations.join(', ') || 'none'}
-- Sound ids must be one of: ${ctx.sounds.join(', ') || 'none'}
-- Scene entities: ${ctx.sceneEntities.join(', ') || 'none'}
+- Animation names must be one of: ${animations.join(', ') || 'none'}
+- Sound ids must be one of: ${sounds.join(', ') || 'none'}
+- Scene entities: ${entities.join(', ') || 'none'}
 - Position values are canvas coordinates (arbitrary integers).
 
 OUTPUT: Respond ONLY with a single JSON object. No markdown. No explanation. Schema:

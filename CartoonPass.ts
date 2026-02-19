@@ -40,16 +40,16 @@ const CartoonShader = {
     uniform vec2      resolution;
     varying vec2      vUv;
 
-    // Detect edges by sampling neighboring depth values (Sobel-ish)
+    // Detect edges by sampling neighboring color values (simplified edge detection)
     float edgeDetect() {
       vec2 texel = 1.0 / resolution;
-      float d0 = texture2D(tDepth, vUv).r;
-      float d1 = texture2D(tDepth, vUv + vec2( texel.x, 0.0)).r;
-      float d2 = texture2D(tDepth, vUv + vec2(-texel.x, 0.0)).r;
-      float d3 = texture2D(tDepth, vUv + vec2(0.0,  texel.y)).r;
-      float d4 = texture2D(tDepth, vUv + vec2(0.0, -texel.y)).r;
-      float edge = abs(d0 - d1) + abs(d0 - d2) + abs(d0 - d3) + abs(d0 - d4);
-      return clamp(edge * 80.0, 0.0, 1.0);
+      vec3 c0 = texture2D(tDiffuse, vUv).rgb;
+      vec3 c1 = texture2D(tDiffuse, vUv + vec2( texel.x, 0.0)).rgb;
+      vec3 c2 = texture2D(tDiffuse, vUv + vec2(-texel.x, 0.0)).rgb;
+      vec3 c3 = texture2D(tDiffuse, vUv + vec2(0.0,  texel.y)).rgb;
+      vec3 c4 = texture2D(tDiffuse, vUv + vec2(0.0, -texel.y)).rgb;
+      float edge = length(c0 - c1) + length(c0 - c2) + length(c0 - c3) + length(c0 - c4);
+      return clamp(edge * 2.0, 0.0, 1.0);
     }
 
     // Quantize brightness to discrete bands

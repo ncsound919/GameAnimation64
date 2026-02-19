@@ -57,7 +57,7 @@ export interface SceneNodeData {
   // Mesh-specific
   gltfPath?:      string;
   materialId?:    string;
-  cartoonBands?:  number;  // cel-shading colour band count (2–8)
+  cartoonBands?:  number;  // cel-shading color band count (2–8)
 }
 
 // ─── Viewport3D ───────────────────────────────────────────────────────────────
@@ -77,6 +77,9 @@ export class Viewport3D {
   private selected  = new Set<string>();
   private renderMode: RenderMode = 'standard';
   private animFrameId: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private clickHandler: ((e: MouseEvent) => void) | null = null;
+  private budgetCheckTimeout: number | null = null;
 
   private budgetWarningCb?: (w: BudgetWarning) => void;
   private selectionChangeCb?: (ids: string[]) => void;
@@ -139,12 +142,20 @@ export class Viewport3D {
     this.matBridge = new N64MaterialBridge();
 
     // Resize observer
-    const ro = new ResizeObserver(() => this.handleResize(opts.container));
-    ro.observe(opts.container);
+    this.resizeObserver = new ResizeObserver(() => {
+      // Auto-disconnect once the container is no longer in the document to avoid leaks.
+      if (!document.contains(opts.container)) {
+        this.resizeObserver?.disconnect();
+        return;
+      }
+      this.handleResize(opts.container);
+    });
+    this.resizeObserver.observe(opts.container);
     this.handleResize(opts.container);
 
     // Selection via raycasting
-    this.renderer.domElement.addEventListener('click', (e) => this.handleClick(e));
+    this.clickHandler = (e: MouseEvent) => this.handleClick(e);
+    this.renderer.domElement.addEventListener('click', this.clickHandler);
 
     this.startLoop();
   }
@@ -165,13 +176,27 @@ export class Viewport3D {
     obj.visible = data.visible;
     obj.name    = data.name;
 
-    this.checkBudgets();
+    this.scheduleBudgetCheck();
   }
 
   /** Remove a node from the Three.js scene. */
   removeNode(id: string): void {
     const obj = this.nodeMap.get(id);
     if (obj) {
+      // Dispose geometries and materials to prevent memory leaks
+      obj.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(mat => mat.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        }
+      });
+      
       this.scene.remove(obj);
       this.nodeMap.delete(id);
       this.selected.delete(id);
@@ -195,19 +220,67 @@ export class Viewport3D {
     this.nodeMap.forEach((obj) => {
       obj.traverse((child) => {
         if (child instanceof THREE.Mesh) {
+          const oldMaterial = child.material;
+          
           switch (mode) {
-            case 'wireframe':
-              (child.material as THREE.Material & { wireframe?: boolean }).wireframe = true;
+            case 'wireframe': {
+              const material = child.material;
+              if (Array.isArray(material)) {
+                material.forEach((mat) => {
+                  if (mat && 'wireframe' in mat) {
+                    (mat as THREE.Material & { wireframe?: boolean }).wireframe = true;
+                  }
+                });
+              } else if (material && 'wireframe' in material) {
+                (material as THREE.Material & { wireframe?: boolean }).wireframe = true;
+              }
               break;
-            case 'cartoon':
-              child.material = this.matBridge.toCartoon(child.material);
+            }
+            case 'cartoon': {
+              const newMaterial = this.matBridge.toCartoon(oldMaterial);
+              child.material = newMaterial;
+              if (oldMaterial !== newMaterial && oldMaterial && typeof (oldMaterial as any).dispose === 'function') {
+                if (Array.isArray(oldMaterial)) {
+                  oldMaterial.forEach(mat => mat.dispose());
+                } else {
+                  oldMaterial.dispose();
+                }
+              }
               break;
-            case 'n64-accurate':
-              child.material = this.matBridge.toN64Accurate(child.material);
+            }
+            case 'n64-accurate': {
+              const newMaterial = this.matBridge.toN64Accurate(oldMaterial);
+              child.material = newMaterial;
+              if (oldMaterial !== newMaterial && oldMaterial && typeof (oldMaterial as any).dispose === 'function') {
+                if (Array.isArray(oldMaterial)) {
+                  oldMaterial.forEach(mat => mat.dispose());
+                } else {
+                  oldMaterial.dispose();
+                }
+              }
               break;
-            default:
-              child.material = this.matBridge.toStandard(child.material);
-              (child.material as THREE.Material & { wireframe?: boolean }).wireframe = false;
+            }
+            default: {
+              const newMaterial = this.matBridge.toStandard(oldMaterial);
+              child.material = newMaterial;
+              const material = child.material;
+              if (Array.isArray(material)) {
+                material.forEach((mat) => {
+                  if (mat && 'wireframe' in mat) {
+                    (mat as THREE.Material & { wireframe?: boolean }).wireframe = false;
+                  }
+                });
+              } else if (material && 'wireframe' in material) {
+                (material as THREE.Material & { wireframe?: boolean }).wireframe = false;
+              }
+              if (oldMaterial !== newMaterial && oldMaterial && typeof (oldMaterial as any).dispose === 'function') {
+                if (Array.isArray(oldMaterial)) {
+                  oldMaterial.forEach(mat => mat.dispose());
+                } else {
+                  oldMaterial.dispose();
+                }
+              }
+            }
           }
         }
       });
@@ -237,9 +310,30 @@ export class Viewport3D {
   }
 
   dispose(): void {
-    if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
+    if (this.animFrameId !== null) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+    
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    
+    if (this.clickHandler && this.renderer && this.renderer.domElement) {
+      this.renderer.domElement.removeEventListener('click', this.clickHandler);
+      this.clickHandler = null;
+    }
+    
+    if (this.budgetCheckTimeout !== null) {
+      clearTimeout(this.budgetCheckTimeout);
+      this.budgetCheckTimeout = null;
+    }
+    
     this.renderer.dispose();
     this.camCtrl.dispose();
+    this.grid.dispose();
+    this.matBridge.dispose();
   }
 
   // ── Private ─────────────────────────────────────────────────────────────────
@@ -326,6 +420,17 @@ export class Viewport3D {
 
     this.setSelection(newSelection);
     this.selectionChangeCb?.(newSelection);
+  }
+
+  private scheduleBudgetCheck(): void {
+    // Debounce budget checks to avoid running on every node update
+    if (this.budgetCheckTimeout !== null) {
+      clearTimeout(this.budgetCheckTimeout);
+    }
+    this.budgetCheckTimeout = setTimeout(() => {
+      this.checkBudgets();
+      this.budgetCheckTimeout = null;
+    }, 100) as unknown as number;
   }
 
   private checkBudgets(): void {

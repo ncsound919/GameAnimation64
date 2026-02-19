@@ -18,14 +18,20 @@ export class CameraController {
   private orbit:  OrbitControls;
   private camera: THREE.PerspectiveCamera;
   private mode:   Mode = 'orbit';
+  private domElement: HTMLElement;
 
   // Fly mode state
   private keys    = new Set<string>();
   private flySpeed = 8.0;  // units/second
   private clock   = new THREE.Clock();
+  
+  // Event handlers (stored for cleanup)
+  private keyDownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private keyUpHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
     this.camera = camera;
+    this.domElement = domElement;
 
     this.orbit = new OrbitControls(camera, domElement);
     this.orbit.enableDamping   = true;
@@ -36,8 +42,10 @@ export class CameraController {
 
     // Keyboard listeners for fly mode
     domElement.tabIndex = 0;  // make focusable
-    domElement.addEventListener('keydown', (e) => this.onKeyDown(e));
-    domElement.addEventListener('keyup',   (e) => this.onKeyUp(e));
+    this.keyDownHandler = (e: KeyboardEvent) => this.onKeyDown(e);
+    this.keyUpHandler = (e: KeyboardEvent) => this.onKeyUp(e);
+    domElement.addEventListener('keydown', this.keyDownHandler);
+    domElement.addEventListener('keyup', this.keyUpHandler);
   }
 
   /** Called every frame from the render loop. */
@@ -71,6 +79,16 @@ export class CameraController {
 
   dispose(): void {
     this.orbit.dispose();
+    
+    if (this.keyDownHandler && this.domElement) {
+      this.domElement.removeEventListener('keydown', this.keyDownHandler);
+      this.keyDownHandler = null;
+    }
+    
+    if (this.keyUpHandler && this.domElement) {
+      this.domElement.removeEventListener('keyup', this.keyUpHandler);
+      this.keyUpHandler = null;
+    }
   }
 
   // ── Private ──────────────────────────────────────────────────────────────
@@ -93,6 +111,9 @@ export class CameraController {
 
   private updateFly(): void {
     const dt  = this.clock.getDelta();
+    
+    // Reset flySpeed to default if ShiftLeft is not pressed
+    this.flySpeed = this.keys.has('ShiftLeft') ? 24 : 8;
     const spd = this.flySpeed * dt;
 
     const forward = new THREE.Vector3();
@@ -106,8 +127,6 @@ export class CameraController {
     if (this.keys.has('KeyD') || this.keys.has('ArrowRight'))this.camera.position.addScaledVector(right,    spd);
     if (this.keys.has('KeyE')) this.camera.position.y += spd;
     if (this.keys.has('KeyQ')) this.camera.position.y -= spd;
-    if (this.keys.has('ShiftLeft')) this.flySpeed = 24;
-    else                            this.flySpeed = 8;
   }
 
   private toggleOrtho(): void {

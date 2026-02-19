@@ -1,6 +1,9 @@
 /**
  * cel_shader.h
  * Pyrite64 — N64 Cartoon Render Module API
+ *
+ * @copyright 2025 - Max Bebök
+ * @license MIT
  */
 
 #pragma once
@@ -20,7 +23,7 @@ void cel_shader_cleanup(void);
 
 /**
  * Set up RDP state for cel-shaded rendering of the next mesh.
- * @param bands  Shade bands (2=stark contrast, 4=classic toon, 8=smooth)
+ * @param bands  Shade band setting (values <= 3 use fewer, high-contrast bands; values > 3 use more, smoother bands)
  * @param color  Base tint (use RGBA(255,255,255,255) for no tint)
  */
 void cel_shader_begin(uint8_t bands, color_t color);
