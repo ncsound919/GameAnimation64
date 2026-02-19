@@ -67,7 +67,7 @@ export interface SceneNodeData {
 export class Viewport3D {
   private renderer:    THREE.WebGLRenderer;
   private scene:       THREE.Scene;
-  private camera:      THREE.PerspectiveCamera;
+  private camera:      THREE.PerspectiveCamera | THREE.OrthographicCamera;
   private composer:    EffectComposer;
   private outlinePass: OutlinePass;
   private cartoonPass: CartoonPass;
@@ -122,7 +122,7 @@ export class Viewport3D {
     // Camera controller (orbit + fly)
     this.camCtrl = new CameraController(this.camera, this.renderer.domElement);
     this.camCtrl.onCameraChange = (cam) => {
-      this.camera = cam as THREE.PerspectiveCamera;
+      this.camera = cam;
     };
 
     // Post-processing pipeline
@@ -527,7 +527,14 @@ export class Viewport3D {
   private handleResize(container: HTMLElement): void {
     const w = container.clientWidth;
     const h = container.clientHeight;
-    this.camera.aspect = w / h;
+    if (this.camera instanceof THREE.PerspectiveCamera) {
+      this.camera.aspect = w / h;
+    } else if (this.camera instanceof THREE.OrthographicCamera) {
+      const halfH = (this.camera.top - this.camera.bottom) / 2;
+      const aspect = w / h;
+      this.camera.left = -halfH * aspect;
+      this.camera.right = halfH * aspect;
+    }
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
     this.composer.setSize(w, h);

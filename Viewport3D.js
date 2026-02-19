@@ -410,7 +410,15 @@ export class Viewport3D {
     handleResize(container) {
         const w = container.clientWidth;
         const h = container.clientHeight;
-        this.camera.aspect = w / h;
+        if (this.camera instanceof THREE.PerspectiveCamera) {
+            this.camera.aspect = w / h;
+        }
+        else if (this.camera instanceof THREE.OrthographicCamera) {
+            const halfH = (this.camera.top - this.camera.bottom) / 2;
+            const aspect = w / h;
+            this.camera.left = -halfH * aspect;
+            this.camera.right = halfH * aspect;
+        }
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
         this.composer.setSize(w, h);
