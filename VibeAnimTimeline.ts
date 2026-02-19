@@ -104,6 +104,7 @@ export class VibeAnimTimeline {
   // Drag state
   private draggingKeyframe: string | null = null;
   private draggingPlayhead: boolean = false;
+  private _globalMouseUp: (() => void) | null = null;
 
   constructor(initialTracks?: Track[], duration = 2.0) {
     this.state = {
@@ -136,6 +137,9 @@ export class VibeAnimTimeline {
     this.canvas.addEventListener('mouseup',   ()  => this.onMouseUp());
     this.canvas.addEventListener('wheel',     (e) => this.onWheel(e), { passive: false });
     this.canvas.addEventListener('dblclick',  (e) => this.onDoubleClick(e));
+    // Global mouseup clears drag state if mouse is released outside the canvas
+    this._globalMouseUp = () => this.onMouseUp();
+    document.addEventListener('mouseup', this._globalMouseUp);
 
     // Initial render
     requestAnimationFrame(() => this.resizeAndDraw());
@@ -172,6 +176,7 @@ export class VibeAnimTimeline {
 
   dispose(): void {
     if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
+    document.removeEventListener('mouseup', this._globalMouseUp!);
   }
 
   // ── Controls bar ───────────────────────────────────────────────────────────

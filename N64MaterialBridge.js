@@ -91,11 +91,12 @@ export class N64MaterialBridge {
         const mat = source.clone();
         // Apply nearest-neighbor filtering to any mapped textures directly
         if ('map' in mat && mat.map) {
-            const tex = mat.map;
+            const tex = mat.map.clone();
             tex.minFilter = THREE.NearestFilter;
             tex.magFilter = THREE.NearestFilter;
             tex.generateMipmaps = false;
             tex.needsUpdate = true;
+            mat.map = tex;
         }
         this.n64Cache.set(key, mat);
         return mat;

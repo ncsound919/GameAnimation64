@@ -45,7 +45,7 @@ export class VibeAnimTimeline {
         this.draggingPlayhead = false;
         this.state = {
             tracks: initialTracks ?? [],
-            duration,
+            duration: Math.max(0.1, duration),
             playheadTime: 0,
             playing: false,
             looping: true,
@@ -72,7 +72,8 @@ export class VibeAnimTimeline {
         // Initial render
         requestAnimationFrame(() => this.resizeAndDraw());
         if (typeof ResizeObserver !== 'undefined') {
-            new ResizeObserver(() => this.resizeAndDraw()).observe(this.el);
+            this.resizeObserver = new ResizeObserver(() => this.resizeAndDraw());
+            this.resizeObserver.observe(this.el);
         }
     }
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ export class VibeAnimTimeline {
     dispose() {
         if (this.animFrameId !== null)
             cancelAnimationFrame(this.animFrameId);
+        this.resizeObserver?.disconnect();
     }
     // ── Controls bar ───────────────────────────────────────────────────────────
     buildControls() {

@@ -162,28 +162,26 @@ export class Viewport3D {
                             break;
                         }
                         case 'cartoon': {
-                            const newMaterial = this.matBridge.toCartoon(oldMaterial);
+                            const newMaterial = Array.isArray(oldMaterial)
+                                ? oldMaterial.map(m => this.matBridge.toCartoon(m))
+                                : this.matBridge.toCartoon(oldMaterial);
                             child.material = newMaterial;
-                            if (oldMaterial !== newMaterial && oldMaterial && typeof oldMaterial.dispose === 'function') {
-                                if (Array.isArray(oldMaterial)) {
-                                    oldMaterial.forEach(mat => mat.dispose());
-                                }
-                                else {
-                                    oldMaterial.dispose();
-                                }
+                            if (Array.isArray(oldMaterial)) {
+                                oldMaterial.forEach((mat, i) => { if (mat !== newMaterial[i] && typeof mat.dispose === 'function') mat.dispose(); });
+                            } else if (oldMaterial !== newMaterial && oldMaterial && typeof oldMaterial.dispose === 'function') {
+                                oldMaterial.dispose();
                             }
                             break;
                         }
                         case 'n64-accurate': {
-                            const newMaterial = this.matBridge.toN64Accurate(oldMaterial);
+                            const newMaterial = Array.isArray(oldMaterial)
+                                ? oldMaterial.map(m => this.matBridge.toN64Accurate(m))
+                                : this.matBridge.toN64Accurate(oldMaterial);
                             child.material = newMaterial;
-                            if (oldMaterial !== newMaterial && oldMaterial && typeof oldMaterial.dispose === 'function') {
-                                if (Array.isArray(oldMaterial)) {
-                                    oldMaterial.forEach(mat => mat.dispose());
-                                }
-                                else {
-                                    oldMaterial.dispose();
-                                }
+                            if (Array.isArray(oldMaterial)) {
+                                oldMaterial.forEach((mat, i) => { if (mat !== newMaterial[i] && typeof mat.dispose === 'function') mat.dispose(); });
+                            } else if (oldMaterial !== newMaterial && oldMaterial && typeof oldMaterial.dispose === 'function') {
+                                oldMaterial.dispose();
                             }
                             break;
                         }
