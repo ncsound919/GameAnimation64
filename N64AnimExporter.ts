@@ -113,9 +113,9 @@ function bakeTrack(
     if (track.property === 'rotation') {
       // Convert degrees → 0..65535 range
       samples.push(
-        Math.round(((val[0] % 360) + 360) % 360 * ROTATION_SCALE),
-        Math.round(((val[1] % 360) + 360) % 360 * ROTATION_SCALE),
-        Math.round(((val[2] % 360) + 360) % 360 * ROTATION_SCALE),
+        Math.round((((val[0] % 360) + 360) % 360) * ROTATION_SCALE),
+        Math.round((((val[1] % 360) + 360) % 360) * ROTATION_SCALE),
+        Math.round((((val[2] % 360) + 360) % 360) * ROTATION_SCALE),
       );
     } else {
       // Position/scale → 16.16 fixed-point

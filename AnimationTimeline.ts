@@ -365,6 +365,7 @@ export class AnimationTimeline {
     const rect = this.canvas.getBoundingClientRect();
     this.canvas.width = rect.width * window.devicePixelRatio;
     this.canvas.height = rect.height * window.devicePixelRatio;
+    this.ctx?.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx?.scale(window.devicePixelRatio, window.devicePixelRatio);
   }
 
@@ -671,7 +672,7 @@ export class AnimationTimeline {
     if (!label) return;
     const min = Math.floor(this.currentTime / 60);
     const sec = this.currentTime % 60;
-    const frame = Math.floor(this.currentTime * this.fps) % this.fps;
+    const frame = Math.floor(this.currentTime * this.fps);
     label.textContent = `${min}:${sec.toFixed(3).padStart(6, '0')} f${frame}`;
   }
 }
