@@ -1,5 +1,5 @@
 /**
- * N64MaterialBridge.ts
+ * N64MaterialBridge.js
  * Translates Pyrite64 / Fast64 material definitions into Three.js materials
  * for the editor viewport preview.
  *
