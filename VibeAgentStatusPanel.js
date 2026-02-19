@@ -1,5 +1,5 @@
 /**
- * VibeAgentStatusPanel.ts
+ * VibeAgentStatusPanel.js
  * Real-time visual display of agent pool activity.
  *
  * Renders a compact panel showing:
