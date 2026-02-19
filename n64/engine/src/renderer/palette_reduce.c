@@ -38,11 +38,11 @@ static inline uint8_t clamp8(int v) {
 static inline uint8_t quantize_channel(uint8_t val, uint8_t bands) {
   if (bands < 2) bands = 2;
   if (bands > 8) bands = 8;
-  /* Map 0–255 to 0..(bands-1), then back to 0–255. */
-  uint32_t step = 255 / (bands - 1);
-  uint32_t idx  = (val + step / 2) / step;
+  /* Map 0–255 evenly to 0..(bands-1), then back to 0–255.
+   * Using (val * (bands-1) + 127) / 255 for consistent rounding. */
+  uint32_t idx = ((uint32_t)val * (bands - 1) + 127) / 255;
   if (idx >= bands) idx = bands - 1;
-  return (uint8_t)(idx * step);
+  return (uint8_t)((idx * 255) / (bands - 1));
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -112,7 +112,9 @@ color_t palette_remap_to_style(color_t c, PaletteStyle style) {
   int b = luma + db;
 
   /* 4. Warmth shift: boost red, reduce blue, slight green boost.
-   *    warmth is signed 8.8 fixed-point.  Scale: warmth/256 * 15 ≈ 0-6 levels */
+   *    warmth is signed 8.8 fixed-point.
+   *    Scale factors: 15/256 ≈ 0.06 per unit (R/B), 5/256 ≈ 0.02 per unit (G).
+   *    At max warmth (+0.3 = 77), this gives R += ~4.5, B -= ~4.5, G += ~1.5 */
   r += (conf->warmth * 15) >> 8;
   b -= (conf->warmth * 15) >> 8;
   g += (conf->warmth * 5) >> 8;

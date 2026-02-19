@@ -111,6 +111,7 @@ const CartoonShader = {
     vec3 celShade(vec3 color) {
       float luma   = dot(color, vec3(0.299, 0.587, 0.114));
       float biased = pow(luma, bandBias);
+      // Epsilon prevents floor(0.99999) from rounding down at exact band boundaries
       float banded = floor(biased * bands + 0.001) / bands;
       float ratio  = banded / max(luma, 0.001);
       return color * ratio;
@@ -121,6 +122,7 @@ const CartoonShader = {
       vec2 grid   = uv * resolution / halftoneScale;
       vec2 center = floor(grid) + 0.5;
       float dist  = length(grid - center);
+      // 0.5 = max radius to fit within grid cell; dark pixels get larger dots
       float radius = sqrt(1.0 - luma) * 0.5;
       return smoothstep(radius - 0.05, radius + 0.05, dist);
     }
