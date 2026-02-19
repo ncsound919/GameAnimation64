@@ -19,7 +19,6 @@
  */
 import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass';
-import { getDefaultCartoonStyle } from './CartoonStylePresets.js';
 
 // ─── Cartoon shader GLSL ──────────────────────────────────────────────────────
 
