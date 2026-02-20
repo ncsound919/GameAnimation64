@@ -21,13 +21,6 @@ export interface GameComponentTemplate {
    * Technical constraints or requirements (e.g. "Requires a Collision Body").
    */
   requirements?: string[];
-
-  /**
-   * Seed prompt injected into the Vibe Chat when the user clicks
-   * "Refine with Vibe Coder". Provides expert context so the AI
-   * can iterate on or extend this component conversationally.
-   */
-  vibePrompt?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
