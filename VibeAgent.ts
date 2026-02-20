@@ -281,7 +281,7 @@ Scene entities: [${sanitizeArray(ctx.sceneEntities).join(', ')}].`;
   }
 }
 
-/** Handles enemy AI: perception, decision trees, patrol/chase/flee state machines */
+/** Handles combat systems: damage flow, combos, parries, boss phases, threat systems */
 export class CombatAgent extends VibeAgent {
   readonly role  = 'combat' as AgentRole;
   readonly name  = 'CombatAgent';
