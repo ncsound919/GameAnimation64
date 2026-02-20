@@ -655,7 +655,7 @@ export const GAME_COMPONENTS: GameComponentTemplate[] = [
 
       // Activate lock-on
       const findNearest = node('Func',   850, 50, { name: 'FindNearestTagged', arg0: 'Enemy', arg1: 12 });
-      const setTarget   = node('SetState',1050,50, { name: 'LockTarget', value: 0 });
+      const setTarget   = node('SetState',1050,50, { name: 'LockTarget' });
       const setLocked   = node('SetState',1250,50, { name: 'LockOn', value: 1 });
 
       // Deactivate lock-on
