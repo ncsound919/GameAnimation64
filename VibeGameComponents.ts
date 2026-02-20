@@ -698,8 +698,8 @@ export const GAME_COMPONENTS: GameComponentTemplate[] = [
       edges.push(connect(oneVal, 'value',isOn,     'B'));
       edges.push(connect(isOn,   'value',guard,    'cond'));
       edges.push(connect(tick,   'out',  guard,    'in'));
-      edges.push(connect(guard,  'true', getTarget,'in'));
-      edges.push(connect(getTarget,'value',camAim, 'in'));
+      edges.push(connect(guard,  'true', camAim,   'in'));
+      edges.push(connect(getTarget,'value',camAim, 'target'));
       edges.push(connect(camAim, 'out',  faceEnemy,'in'));
 
       edges.push(connect(cUp,    'out',  cycle,    'in'));
