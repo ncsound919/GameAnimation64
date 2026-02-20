@@ -1124,7 +1124,7 @@ export const GAME_COMPONENTS: GameComponentTemplate[] = [
       edges.push(connect(inDlg,  'out',  page,   'in'));
       edges.push(connect(page,   'value',sw,     'value'));
       edges.push(connect(inDlg,  'out',  sw,     'in'));
-      edges.push(connect(sw,     'S1',   type1,  'in'));
+      edges.push(connect(sw,     'S0',   type1,  'in'));
       edges.push(connect(type1,  'out',  type1End,'in'));
       edges.push(connect(type1End,'out', close,  'in'));
       edges.push(connect(close,  'out',  clrFlg, 'in'));
