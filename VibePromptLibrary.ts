@@ -441,9 +441,9 @@ export const PROMPT_LIBRARY: PromptTemplate[] = [
       `Every tick: read "${entityOr(ctx, 'Boss')}" GetHealth / maxHealth → SetHUDBar "BossHealthBar" ratio, ` +
       `segments:4, colorHigh #20e840, colorLow #ff2020. ` +
       `Phase transitions: at 75%, 50%, 25% HP (use Compare + Branch each tick, gated by a per-phase ` +
-      `flag so it fires only once): EmitSignal "boss.phase_change" with phase index, ` +
+      `flag so it fires only once): EmitSignal "${entityOr(ctx, 'Boss')}.phase_change" with phase index, ` +
       `camera shake (random ±0.3 position for 8 frames). ` +
-      `On signal "boss.death": Tween bar out (y:0→-80, 0.5s EaseIn), play "${firstSoundOr(ctx, 'bossDefeat')}" sound. ` +
+      `On signal "${entityOr(ctx, 'Boss')}.death": Tween bar out (y:0→-80, 0.5s EaseIn), play "${firstSoundOr(ctx, 'bossDefeat')}" sound. ` +
       `Total ≤15 nodes.`,
   },
   {
