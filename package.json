@@ -170,7 +170,7 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Anthropic API key for AI-assisted bio research analysis. Get one at [anthropic.com](https://www.anthropic.com). **Store in your user settings (not workspace) to keep it private.**",
-          "scope": "machine"
+          "scope": "application"
         },
         "bioResearch.defaultOrganism": {
           "type": "string",
