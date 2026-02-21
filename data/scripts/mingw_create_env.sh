@@ -4,10 +4,12 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-cd ~
-
 zipfile="gcc-toolchain-mips64-win64.zip"
 sdkpath="/pyrite64-sdk"
+workpath="/pyrite64-tmp"
+
+mkdir -p "$workpath"
+cd "$workpath"
 
 export N64_INST=$sdkpath
 
