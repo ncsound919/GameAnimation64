@@ -32,6 +32,8 @@
     "onCommand:bioResearch.trackMutation",
     "onCommand:bioResearch.physicsCalc",
     "onCommand:bioResearch.parseFasta",
+    "onCommand:bioResearch.setApiKey",
+    "onCommand:bioResearch.clearApiKey",
     "onLanguage:fasta",
     "onLanguage:fastq",
     "workspaceContains:**/*.fasta",
@@ -71,6 +73,18 @@
         "title": "Parse FASTA / FASTQ File",
         "category": "Bio Research",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "bioResearch.setApiKey",
+        "title": "Set Anthropic API Key",
+        "category": "Bio Research",
+        "icon": "$(key)"
+      },
+      {
+        "command": "bioResearch.clearApiKey",
+        "title": "Clear Anthropic API Key",
+        "category": "Bio Research",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -169,7 +183,7 @@
         "bioResearch.anthropicApiKey": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Anthropic API key for AI-assisted bio research analysis. Get one at [anthropic.com](https://www.anthropic.com). **Store in your user settings (not workspace) to keep it private.**",
+          "markdownDescription": "**Deprecated — use the command instead.** Open the Command Palette and run `Bio Research: Set Anthropic API Key` to store your key in the OS secure credential store. This settings field is kept as a fallback for backward compatibility only; prefer the secure command over storing a plaintext key here.",
           "scope": "application"
         },
         "bioResearch.defaultOrganism": {

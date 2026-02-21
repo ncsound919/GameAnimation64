@@ -108,6 +108,38 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
+  // ── Securely store the Anthropic API key ────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand('bioResearch.setApiKey', async () => {
+      const key = await vscode.window.showInputBox({
+        title:       'Bio Research: Set Anthropic API Key',
+        prompt:      'Enter your Anthropic API key. It will be stored in the OS secure credential store.',
+        placeHolder: 'sk-ant-…',
+        password:    true,
+      });
+      if (key === undefined) return;  // user cancelled
+      if (!key.trim()) {
+        vscode.window.showWarningMessage('No API key entered. Nothing was saved.');
+        return;
+      }
+      await context.secrets.store('bioResearch.anthropicApiKey', key.trim());
+      vscode.window.showInformationMessage('✅ Anthropic API key saved securely.');
+    }),
+  );
+
+  // ── Remove the stored API key ────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand('bioResearch.clearApiKey', async () => {
+      const existing = await context.secrets.get('bioResearch.anthropicApiKey');
+      if (!existing) {
+        vscode.window.showInformationMessage('No Anthropic API key is currently stored.');
+        return;
+      }
+      await context.secrets.delete('bioResearch.anthropicApiKey');
+      vscode.window.showInformationMessage('🗑 Anthropic API key removed from secure store.');
+    }),
+  );
+
   // ── Parse FASTA / FASTQ File ────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand('bioResearch.parseFasta', async (uri?: vscode.Uri) => {
@@ -134,7 +166,7 @@ export function activate(context: vscode.ExtensionContext): void {
   if (!installed) {
     context.globalState.update('bioResearch.installed', true);
     vscode.window.showInformationMessage(
-      '🔬 Bio Research extension activated! Open the panel via Ctrl+Shift+P → "Bio Research: Open Bio Research Panel".',
+      '🔬 Bio Research extension activated! Open the panel via the Command Palette → "Bio Research: Open Bio Research Panel".',
       'Open Panel',
     ).then(choice => {
       if (choice === 'Open Panel') BioResearchPanel.open(context);

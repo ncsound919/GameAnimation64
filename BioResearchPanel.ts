@@ -190,12 +190,17 @@ export class BioResearchPanel {
 
   private async handleAskAi(payload: unknown): Promise<void> {
     const { prompt, context: ctx } = payload as { prompt: string; context: string };
-    const cfg = vscode.workspace.getConfiguration('bioResearch');
-    const key = cfg.get<string>('anthropicApiKey', '');
+
+    // Read from the secure secrets store first; fall back to settings for backward compatibility
+    let key = await this.context.secrets.get('bioResearch.anthropicApiKey') ?? '';
+    if (!key) {
+      const cfg = vscode.workspace.getConfiguration('bioResearch');
+      key = cfg.get<string>('anthropicApiKey', '');
+    }
 
     if (!key) {
       this.reply('askAiResult', {
-        error: 'No Anthropic API key configured. Set bioResearch.anthropicApiKey in VSCode settings.',
+        error: 'No Anthropic API key found. Run the command "Bio Research: Set Anthropic API Key" to store it securely.',
       });
       return;
     }
