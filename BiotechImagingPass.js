@@ -1,5 +1,5 @@
 /**
- * BiotechImagingPass.ts
+ * BiotechImagingPass.js
  * Post-processing pass for biotechnology imaging and simulation visualization.
  *
  * Implements multiple biotech microscopy rendering modes as a Three.js
