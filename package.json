@@ -184,7 +184,7 @@
           "type": "string",
           "default": "",
           "markdownDescription": "**Deprecated — use the command instead.** Open the Command Palette and run `Bio Research: Set Anthropic API Key` to store your key in the OS secure credential store. This settings field is kept as a fallback for backward compatibility only; prefer the secure command over storing a plaintext key here.",
-          "scope": "application"
+          "scope": "machine"
         },
         "bioResearch.defaultOrganism": {
           "type": "string",
