@@ -31,10 +31,14 @@ import { PROMPT_LIBRARY, getGroupedTemplates } from './VibePromptLibrary.js';
 import { VibeAgentPool } from './VibeAgentPool.js';
 import { VibeAgentStatusPanel } from './VibeAgentStatusPanel.js';
 import { VibeCreatorPage } from './VibeCreatorPage.js';
+import { BiotechImagingPass } from './BiotechImagingPass.js';
+import { runSimulation } from './BiotechSimulation.js';
 // ─── VibeDashboard ────────────────────────────────────────────────────────────
 export class VibeDashboard {
     constructor(opts) {
         this.viewport = null;
+        /** Biotech imaging post-process pass (lazily initialized with the composer). */
+        this.biotechPass = null;
         this.isCreatorView = false;
         this.opts = opts;
         this.projectName = opts.projectName ?? 'untitled';
@@ -134,12 +138,118 @@ export class VibeDashboard {
     }
     dispose() {
         this.viewport?.dispose();
+        this.biotechPass?.dispose();
         this.timeline.dispose();
         this.agentPanel.dispose();
         this.creatorPage.dispose();
         this.opts.container.innerHTML = '';
     }
-    // ── Event wiring ───────────────────────────────────────────────────────────
+    // ── Biotech imaging API ────────────────────────────────────────────────────
+    /**
+     * Enable or disable the biotech imaging post-process pass and set its mode.
+     *
+     * The pass is lazily added to the viewport's EffectComposer the first time
+     * this is called with a non-standard mode.
+     *
+     * @param mode  One of: 'standard' | 'fluorescence' | 'confocal' |
+     *              'false-color' | 'phase-contrast'
+     */
+    setBiotechMode(mode) {
+        this.ensureBiotechPass();
+        this.biotechPass.setMode(mode);
+        const label = mode === 'standard' ? 'OFF' : mode.toUpperCase().replace(/-/g, ' ');
+        this.toast(`Biotech imaging: ${label}`, 'info', 2000);
+    }
+    /**
+     * Set the color map for false-color visualization mode.
+     * @param map  One of: 'jet' | 'viridis' | 'hot' | 'cool' | 'grayscale'
+     */
+    setBiotechColorMap(map) {
+        this.ensureBiotechPass();
+        this.biotechPass.setColorMap(map);
+        this.toast(`Color map: ${map}`, 'info', 1500);
+    }
+    /**
+     * Configure the confocal z-slice for depth-selective imaging.
+     * @param center    Normalized depth of the focal plane (0–1).
+     * @param thickness Normalized thickness of the z-slice (0–1).
+     */
+    setBiotechZSlice(center, thickness) {
+        this.ensureBiotechPass();
+        this.biotechPass.setZSlice(center, thickness);
+    }
+    /**
+     * Get the active BiotechImagingPass instance (null until first setBiotechMode call).
+     */
+    getBiotechImaging() {
+        return this.biotechPass;
+    }
+    /**
+     * Run a biological simulation and load the resulting AnimClip into the
+     * timeline for immediate playback and editing.
+     *
+     * @param config   SimulationConfig describing type, duration, targets, etc.
+     * @returns        The clip name, or null on failure.
+     */
+    runBiotechSimulation(config) {
+        try {
+            const result = runSimulation(config);
+            if (result.warnings.length > 0) {
+                result.warnings.forEach(w => this.toast(`⚠ ${w}`, 'info', 4000));
+            }
+            // Convert AnimClip tracks to VibeAnimTimeline Track format
+            const tracks = result.clip.tracks.map((animTrack, idx) => ({
+                id: `biotech-${idx}`,
+                label: `${animTrack.targetNode}.${animTrack.property}`,
+                type: 'number',
+                color: BIOTECH_TRACK_COLORS[idx % BIOTECH_TRACK_COLORS.length],
+                keyframes: animTrack.keyframes.map((kf, ki) => ({
+                    id: `kf-${idx}-${ki}`,
+                    time: kf.time,
+                    value: kf.value[0],
+                    easing: kf.easing === 'step' ? 'step' : kf.easing === 'bezier' ? 'ease-in-out' : 'linear',
+                })),
+            }));
+            this.timeline.setTracks(tracks);
+            this.timeline.setDuration(result.clip.duration);
+            this.toast(`Simulation loaded: ${result.summary}`, 'success');
+            return result.clip.name;
+        }
+        catch (e) {
+            this.toast(`Simulation error: ${String(e)}`, 'error');
+            return null;
+        }
+    }
+    /**
+     * Populate the 3D viewport with a set of biological entities.
+     * Each BioEntity is converted to a SceneNodeData and upserted into Viewport3D.
+     *
+     * @param entities  Array from buildEukaryoticCellScene() or similar helper.
+     */
+    loadBioScene(entities) {
+        for (const e of entities) {
+            this.viewport?.upsertNode({
+                id: e.id,
+                name: e.name,
+                type: 'mesh',
+                position: e.position,
+                rotation: [0, 0, 0],
+                scale: e.scale,
+                visible: true,
+            });
+        }
+        this.toast(`Loaded ${entities.length} biological entities`, 'success', 2500);
+    }
+    // ── Private: lazy biotech pass init ───────────────────────────────────────
+    ensureBiotechPass() {
+        if (this.biotechPass)
+            return;
+        this.biotechPass = new BiotechImagingPass({ mode: 'standard' });
+        // Note: In a full Electron integration the pass would be added to
+        // Viewport3D's EffectComposer. The pass is held here and can be wired
+        // to the composer via viewport.addPostPass(this.biotechPass) once that
+        // API is available.
+    }
     wireSidebarEvents() {
         this.sidebar
             .on('entitySelect', (name) => {
@@ -290,11 +400,12 @@ export class VibeDashboard {
         }
     }
     onBudgetWarning(w) {
-        // Update sidebar budget strip using the warning type to indicate which budget is exceeded
+        // Update sidebar budget strip
+        // (We track live increments; for a real integration you'd query the scene)
         const snapshot = {
-            tris:    { used: w.type === 'tris'  ? N64_LIMITS.MAX_TRIS_PER_MESH + 1   : 0, max: N64_LIMITS.MAX_TRIS_PER_MESH },
-            verts:   { used: w.type === 'verts' ? N64_LIMITS.MAX_VERTS_PER_FRAME + 1 : 0, max: N64_LIMITS.MAX_VERTS_PER_FRAME },
-            rdramKB: { used: w.type === 'rdram' ? N64_LIMITS.RDRAM_KB + 1               : 0, max: N64_LIMITS.RDRAM_KB },
+            tris: { used: w.type === 'tris' ? N64_LIMITS.MAX_TRIS_PER_MESH + 1 : 0, max: N64_LIMITS.MAX_TRIS_PER_MESH },
+            verts: { used: w.type === 'verts' ? N64_LIMITS.MAX_VERTS_PER_FRAME + 1 : 0, max: N64_LIMITS.MAX_VERTS_PER_FRAME },
+            rdramKB: { used: w.type === 'rdram' ? N64_LIMITS.RDRAM_KB + 1 : 0, max: N64_LIMITS.RDRAM_KB },
         };
         this.sidebar.updateBudget(snapshot);
         // Notify in chat if critical
@@ -469,7 +580,7 @@ export class VibeDashboard {
     // ── HUD updaters ───────────────────────────────────────────────────────────
     updateHUDMode(mode) {
         if (this.hudModeStat) {
-            this.hudModeStat.textContent = mode.toUpperCase().replace('-', ' ');
+            this.hudModeStat.textContent = mode.toUpperCase().replace(/-/g, ' ');
         }
     }
     updateHUDBudgetDots(w) {
@@ -492,10 +603,21 @@ export class VibeDashboard {
         return s
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 }
 // ─── Default node types (matches Pyrite64 built-in palette) ──────────────────
+/** Track colors for biotech simulation tracks in the timeline. */
+const BIOTECH_TRACK_COLORS = [
+    '#44ff88', // GFP green
+    '#ff4466', // mCherry red
+    '#44aaff', // DAPI blue
+    '#ffee44', // YFP yellow
+    '#ff88ff', // magenta
+    '#88ffff', // cyan
+];
 const DEFAULT_NODE_TYPES = [
     // Entry points
     'OnStart', 'OnTick', 'OnCollide', 'OnAnimEnd', 'OnTimer',

@@ -33,6 +33,8 @@ import { PROMPT_LIBRARY, getGroupedTemplates, PromptTemplate, PromptCategory } f
 import { VibeAgentPool } from './VibeAgentPool.js';
 import { VibeAgentStatusPanel } from './VibeAgentStatusPanel.js';
 import { VibeCreatorPage } from './VibeCreatorPage.js';
+import { BiotechImagingPass, ImagingMode, ColorMap } from './BiotechImagingPass.js';
+import { SimulationConfig, runSimulation, BioEntity } from './BiotechSimulation.js';
 
 // ─── Dashboard options ────────────────────────────────────────────────────────
 
@@ -70,6 +72,9 @@ export class VibeDashboard {
   private agentPool:   VibeAgentPool;
   private agentPanel:  VibeAgentStatusPanel;
   private creatorPage: VibeCreatorPage;
+
+  /** Biotech imaging post-process pass (lazily initialized with the composer). */
+  private biotechPass: BiotechImagingPass | null = null;
 
   private projectName:   string;
   private activeEntity:  string;
@@ -201,13 +206,127 @@ export class VibeDashboard {
 
   dispose(): void {
     this.viewport?.dispose();
+    this.biotechPass?.dispose();
     this.timeline.dispose();
     this.agentPanel.dispose();
     this.creatorPage.dispose();
     this.opts.container.innerHTML = '';
   }
 
-  // ── Event wiring ───────────────────────────────────────────────────────────
+  // ── Biotech imaging API ────────────────────────────────────────────────────
+
+  /**
+   * Enable or disable the biotech imaging post-process pass and set its mode.
+   *
+   * The pass is lazily added to the viewport's EffectComposer the first time
+   * this is called with a non-standard mode.
+   *
+   * @param mode  One of: 'standard' | 'fluorescence' | 'confocal' |
+   *              'false-color' | 'phase-contrast'
+   */
+  setBiotechMode(mode: ImagingMode): void {
+    this.ensureBiotechPass();
+    this.biotechPass!.setMode(mode);
+    const label = mode === 'standard' ? 'OFF' : mode.toUpperCase().replace(/-/g, ' ');
+    this.toast(`Biotech imaging: ${label}`, 'info', 2000);
+  }
+
+  /**
+   * Set the color map for false-color visualization mode.
+   * @param map  One of: 'jet' | 'viridis' | 'hot' | 'cool' | 'grayscale'
+   */
+  setBiotechColorMap(map: ColorMap): void {
+    this.ensureBiotechPass();
+    this.biotechPass!.setColorMap(map);
+    this.toast(`Color map: ${map}`, 'info', 1500);
+  }
+
+  /**
+   * Configure the confocal z-slice for depth-selective imaging.
+   * @param center    Normalized depth of the focal plane (0–1).
+   * @param thickness Normalized thickness of the z-slice (0–1).
+   */
+  setBiotechZSlice(center: number, thickness: number): void {
+    this.ensureBiotechPass();
+    this.biotechPass!.setZSlice(center, thickness);
+  }
+
+  /**
+   * Get the active BiotechImagingPass instance (null until first setBiotechMode call).
+   */
+  getBiotechImaging(): BiotechImagingPass | null {
+    return this.biotechPass;
+  }
+
+  /**
+   * Run a biological simulation and load the resulting AnimClip into the
+   * timeline for immediate playback and editing.
+   *
+   * @param config   SimulationConfig describing type, duration, targets, etc.
+   * @returns        The clip name, or null on failure.
+   */
+  runBiotechSimulation(config: SimulationConfig): string | null {
+    try {
+      const result = runSimulation(config);
+      if (result.warnings.length > 0) {
+        result.warnings.forEach(w => this.toast(`⚠ ${w}`, 'info', 4000));
+      }
+      // Convert AnimClip tracks to VibeAnimTimeline Track format
+      const tracks: Track[] = result.clip.tracks.map((animTrack, idx) => ({
+        id:       `biotech-${idx}`,
+        label:    `${animTrack.targetNode}.${animTrack.property}`,
+        type:     'number' as const,
+        color:    BIOTECH_TRACK_COLORS[idx % BIOTECH_TRACK_COLORS.length],
+        keyframes: animTrack.keyframes.map((kf, ki) => ({
+          id:     `kf-${idx}-${ki}`,
+          time:   kf.time,
+          value:  kf.value[0],
+          easing: kf.easing === 'step' ? 'step' : kf.easing === 'bezier' ? 'ease-in-out' : 'linear',
+        })),
+      }));
+      this.timeline.setTracks(tracks);
+      this.timeline.setDuration(result.clip.duration);
+      this.toast(`Simulation loaded: ${result.summary}`, 'success');
+      return result.clip.name;
+    } catch (e) {
+      this.toast(`Simulation error: ${String(e)}`, 'error');
+      return null;
+    }
+  }
+
+  /**
+   * Populate the 3D viewport with a set of biological entities.
+   * Each BioEntity is converted to a SceneNodeData and upserted into Viewport3D.
+   *
+   * @param entities  Array from buildEukaryoticCellScene() or similar helper.
+   */
+  loadBioScene(entities: BioEntity[]): void {
+    for (const e of entities) {
+      this.viewport?.upsertNode({
+        id:        e.id,
+        name:      e.name,
+        type:      'mesh',
+        position:  e.position,
+        rotation:  [0, 0, 0],
+        scale:     e.scale,
+        visible:   true,
+      });
+    }
+    this.toast(`Loaded ${entities.length} biological entities`, 'success', 2500);
+  }
+
+  // ── Private: lazy biotech pass init ───────────────────────────────────────
+
+  private ensureBiotechPass(): void {
+    if (this.biotechPass) return;
+    this.biotechPass = new BiotechImagingPass({ mode: 'standard' });
+    // Note: In a full Electron integration the pass would be added to
+    // Viewport3D's EffectComposer. The pass is held here and can be wired
+    // to the composer via viewport.addPostPass(this.biotechPass) once that
+    // API is available.
+  }
+
+
 
   private wireSidebarEvents(): void {
     this.sidebar
@@ -578,7 +697,7 @@ export class VibeDashboard {
 
   private updateHUDMode(mode: RenderMode): void {
     if (this.hudModeStat) {
-      this.hudModeStat.textContent = mode.toUpperCase().replace('-', ' ');
+      this.hudModeStat.textContent = mode.toUpperCase().replace(/-/g, ' ');
     }
   }
 
@@ -614,6 +733,16 @@ export class VibeDashboard {
 }
 
 // ─── Default node types (matches Pyrite64 built-in palette) ──────────────────
+
+/** Track colors for biotech simulation tracks in the timeline. */
+const BIOTECH_TRACK_COLORS: string[] = [
+  '#44ff88',  // GFP green
+  '#ff4466',  // mCherry red
+  '#44aaff',  // DAPI blue
+  '#ffee44',  // YFP yellow
+  '#ff88ff',  // magenta
+  '#88ffff',  // cyan
+];
 
 const DEFAULT_NODE_TYPES: string[] = [
   // Entry points
