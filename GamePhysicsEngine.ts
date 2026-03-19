@@ -271,15 +271,26 @@ export class PhysicsWorld {
   private fixedStep(dt: number): void {
     const gravity = this.config.gravity;
 
-    // Integrate forces
+    // ── 1) Accumulate forces (gravity, external, constraints) ─────────────
+
+    // Apply gravity (and keep any externally applied forces) for this step
     for (const body of this.bodies.values()) {
       if (body.config.mass === 0 || body.config.isKinematic) continue;
 
       // Apply gravity
       const gravForce = vec3Scale(gravity, body.config.mass);
       body.applyForce(gravForce);
+    }
 
-      // Integrate acceleration from forces
+    // Solve constraints, which may add forces via applyForce()
+    this.solveConstraints(dt);
+
+    // ── 2) Integrate using accumulated forces, then reset ────────────────
+
+    for (const body of this.bodies.values()) {
+      if (body.config.mass === 0 || body.config.isKinematic) continue;
+
+      // Integrate acceleration from total accumulated forces
       body.acceleration = vec3Scale(body.force, body.inverseMass);
       body.velocity = vec3Add(body.velocity, vec3Scale(body.acceleration, dt));
 
@@ -293,15 +304,12 @@ export class PhysicsWorld {
       body.angularVelocity = vec3Scale(body.angularVelocity, 1 - body.config.angularDamping);
       body.rotation = vec3Add(body.rotation, vec3Scale(body.angularVelocity, dt));
 
-      // Reset forces
+      // Reset forces for the next step
       body.force = [0, 0, 0];
       body.torque = [0, 0, 0];
     }
 
-    // Solve constraints
-    this.solveConstraints(dt);
-
-    // Detect and resolve collisions
+    // ── 3) Detect and resolve collisions ─────────────────────────────────
     this.detectCollisions();
   }
 
