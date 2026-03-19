@@ -234,12 +234,20 @@ export class AssetPipeline {
     switch (entry.type) {
       case 'texture': {
         const format = options.textureFormat ?? 'rgba16';
-        const maxSize = options.maxTexSize ?? 64;
+        let maxSize = options.maxTexSize ?? 64;
 
         // Check N64 texture constraints
         const validSizes = [32, 64, 128, 256];
         if (!validSizes.includes(maxSize)) {
-          warnings.push(`Texture size ${maxSize} is not N64-native; clamping to nearest valid size.`);
+          const originalSize = maxSize;
+          maxSize = validSizes.reduce((nearest, candidate) => {
+            const nearestDiff = Math.abs(nearest - originalSize);
+            const candidateDiff = Math.abs(candidate - originalSize);
+            return candidateDiff < nearestDiff ? candidate : nearest;
+          }, validSizes[0]);
+          warnings.push(
+            `Texture size ${originalSize} is not N64-native; clamped to nearest valid size ${maxSize}.`
+          );
         }
 
         return {
