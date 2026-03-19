@@ -315,7 +315,7 @@ export class AssetPipeline {
 
   emit(event, data) {
     const cbs = this.listeners.get(event);
-    if (cbs) for (const cb of cbs) cb(data);
+    if (cbs) for (const cb of [...cbs]) cb(data);
   }
 
   // ─── Internal ───────────────────────────────────────────────────────────
