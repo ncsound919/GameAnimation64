@@ -218,7 +218,6 @@ export class ParticleEmitter {
       const lifeT = p.age / p.lifetime;
       const col = sampleGradient(this.config.colorOverLife, lifeT);
       p.color.setRGB(col[0], col[1], col[2]);
-      p.alpha = col[3];
       p.size = sampleSizeCurve(this.config.sizeOverLife, lifeT);
 
       // Write to buffers
