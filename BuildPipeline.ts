@@ -110,7 +110,13 @@ export class BuildPipeline {
   getStatus(): BuildStatus { return this.status; }
 
   /** Get the current build progress. */
-  getProgress(): BuildProgress { return { ...this.progress }; }
+  getProgress(): BuildProgress {
+    return {
+      ...this.progress,
+      warnings: [...this.progress.warnings],
+      errors:   [...this.progress.errors],
+    };
+  }
 
   // ─── Build Execution ────────────────────────────────────────────────────
 
