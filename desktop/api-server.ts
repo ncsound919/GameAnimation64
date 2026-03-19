@@ -124,8 +124,14 @@ export function createApiServer(staticRoot: string): { app: express.Application;
       return;
     }
 
+    const rawSystemPrompt = (body as any).systemPrompt;
+    const system =
+      typeof rawSystemPrompt === 'string' && rawSystemPrompt.trim().length > 0
+        ? rawSystemPrompt
+        : buildSystemPrompt(body.context);
+
     const response = await callAnthropic({
-      system: buildSystemPrompt(body.context),
+      system,
       messages: [{ role: 'user', content: body.prompt }],
       maxTokens: 2048,
     });
