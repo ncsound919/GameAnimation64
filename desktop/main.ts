@@ -146,7 +146,7 @@ function registerIPC(): void {
         systemPrompt?: string;
       },
     ) => {
-      const res = await fetch(`${baseUrl()}/api/generate-agent`, {
+      const res = await fetch(`${baseUrl()}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
