@@ -221,22 +221,6 @@ function buildMenu(): void {
     {
       label: 'File',
       submenu: [
-        {
-          label: 'Open File…',
-          accelerator: 'CmdOrCtrl+O',
-          click: () => mainWindow?.webContents.send('vibe:menu-open'),
-        },
-        {
-          label: 'Save',
-          accelerator: 'CmdOrCtrl+S',
-          click: () => mainWindow?.webContents.send('vibe:menu-save'),
-        },
-        { type: 'separator' },
-        {
-          label: 'Set API Key…',
-          click: () => mainWindow?.webContents.send('vibe:menu-set-key'),
-        },
-        { type: 'separator' },
         { role: 'quit' },
       ],
     },

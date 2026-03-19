@@ -1,5 +1,5 @@
 /**
- * AnimationClip.ts
+ * AnimationClip.js
  * Animation data model for Pyrite64's keyframe animation system.
  *
  * Represents skeletal and transform animations that can be:
