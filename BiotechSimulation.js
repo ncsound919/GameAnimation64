@@ -19,7 +19,7 @@
  *   const clip = generateCellDivisionClip('nucleus', { duration: 4.0 });
  *   timeline.loadClip(clip);
  */
-import { createClip, addTrack, insertKeyframe, } from './AnimationClip';
+import { createClip, addTrack, insertKeyframe, } from './AnimationClip.js';
 // ─── Public simulation generators ────────────────────────────────────────────
 /**
  * Generate an animation clip for a cell division (mitosis) sequence.
