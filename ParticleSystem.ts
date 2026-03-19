@@ -135,6 +135,28 @@ export class ParticleEmitter {
       blending:          this.blendModeToThree(this.config.blendMode),
     });
 
+    // Make the `aSize` per-particle attribute affect the rendered point size.
+    // We inject the attribute into the vertex shader and multiply it into gl_PointSize.
+    this.material.onBeforeCompile = (shader) => {
+      // Declare the aSize attribute in the vertex shader.
+      shader.vertexShader = shader.vertexShader.replace(
+        'void main() {',
+        'attribute float aSize;\nvoid main() {'
+      );
+
+      // Apply aSize to the computed point size. We handle both the sizeAttenuation
+      // and non-attenuated variants used by PointsMaterial across Three.js versions.
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          'gl_PointSize = size * ( scale / - mvPosition.z );',
+          'gl_PointSize = size * aSize * ( scale / - mvPosition.z );'
+        )
+        .replace(
+          'gl_PointSize = size;',
+          'gl_PointSize = size * aSize;'
+        );
+    };
+
     if (this.config.textureUrl) {
       const loader = new THREE.TextureLoader();
       loader.load(this.config.textureUrl, (tex) => {
