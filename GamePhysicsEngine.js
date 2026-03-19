@@ -465,8 +465,8 @@ export class PhysicsWorld {
     const forceMag = c.stiffness * displacement + c.damping * velAlongSpring;
     const force = vec3Scale(dir, forceMag);
 
-    if (a.inverseMass > 0) a.applyForce(force);
-    if (b.inverseMass > 0) b.applyForce(vec3Scale(force, -1));
+    if (a.inverseMass > 0) a.velocity = vec3Add(a.velocity, vec3Scale(force, a.inverseMass * dt));
+    if (b.inverseMass > 0) b.velocity = vec3Sub(b.velocity, vec3Scale(force, b.inverseMass * dt));
   }
 
   solveHinge(c) {
