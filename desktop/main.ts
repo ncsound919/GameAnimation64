@@ -23,7 +23,7 @@ import { createApiServer } from './api-server.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const PROJECT_ROOT = path.resolve(__dirname, '..');
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const PRELOAD_PATH = path.join(__dirname, 'preload.js');
 const IS_DEV = process.env.NODE_ENV === 'development';
 
