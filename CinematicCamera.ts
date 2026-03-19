@@ -232,7 +232,17 @@ export class CinematicCamera {
   }
 
   private updateShake(dt: number): void {
-    if (this.shakes.length === 0) return;
+    // Track the last applied shake offset so we only apply the delta each frame.
+    const lastOffset = (this as any)._lastShakeOffset as THREE.Vector3 | undefined;
+
+    // If there are no active shakes, remove any residual offset and return.
+    if (this.shakes.length === 0) {
+      if (lastOffset) {
+        this.camera.position.sub(lastOffset);
+        (this as any)._lastShakeOffset = undefined;
+      }
+      return;
+    }
 
     let totalOffset = new THREE.Vector3();
 
@@ -263,7 +273,13 @@ export class CinematicCamera {
       }
     }
 
-    this.camera.position.add(totalOffset);
+    // Apply only the change in offset since the last frame to avoid drift.
+    const delta = totalOffset.clone();
+    if (lastOffset) {
+      delta.sub(lastOffset);
+    }
+    this.camera.position.add(delta);
+    (this as any)._lastShakeOffset = totalOffset;
   }
 
   // ─── Camera Path ────────────────────────────────────────────────────────
