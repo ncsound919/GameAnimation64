@@ -398,8 +398,8 @@ export class AssetPipeline {
         case 'audio':
           return await response.arrayBuffer();
         case 'script':
-          // Script assets (e.g. .js/.ts) are source code, not JSON.
-          return await response.text();
+          // Script assets are usually source text, but `.json` is also mapped to `script`.
+          return entry.source.toLowerCase().endsWith('.json') ? await response.json() : await response.text();
         case 'material':
         case 'scene':
           return await response.json();
