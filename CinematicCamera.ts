@@ -287,7 +287,7 @@ export class CinematicCamera {
   /** Set waypoints for a camera path. */
   setPath(waypoints: CameraWaypoint[]): void {
     this.pathWaypoints = waypoints;
-    this.pathTotalTime = waypoints.reduce((sum, w) => sum + w.duration, 0);
+    this.pathTotalTime = waypoints.slice(1).reduce((sum, w) => sum + w.duration, 0);
     this.pathTime = 0;
   }
 
