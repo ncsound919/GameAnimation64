@@ -111,6 +111,8 @@
               return fetch(`${API_BASE}/api/key`, { method: 'DELETE' }).then(r => r.ok);
             case 'vibe:key-status':
               return fetch(`${API_BASE}/api/key/status`).then(r => r.json());
+            case 'vibe:generate-agent':
+              return apiPost('/api/generate-agent', args[0]);
             default:
               throw new Error(`Unknown channel: ${channel}`);
           }
