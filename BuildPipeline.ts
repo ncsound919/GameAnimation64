@@ -174,6 +174,28 @@ export class BuildPipeline {
       return result;
 
     } catch (err) {
+      // Treat an aborted build as a cancellation, not a generic error.
+      if (err instanceof Error && err.name === 'AbortError') {
+        const errorMsg = err.message || 'Build cancelled.';
+        errors.push(errorMsg);
+
+        const result: BuildResult = {
+          success: false,
+          target: config.target,
+          outputPath: '',
+          outputSize: 0,
+          duration: Date.now() - startTime,
+          warnings,
+          errors,
+          assets: bundledAssets,
+        };
+
+        // Reset status back to idle and emit a dedicated cancellation event.
+        this.status = 'idle';
+        this.emit('build:cancelled', result);
+        return result;
+      }
+
       this.status = 'error';
       const errorMsg = err instanceof Error ? err.message : String(err);
       errors.push(errorMsg);
@@ -199,16 +221,26 @@ export class BuildPipeline {
   /** Cancel an in-progress build. */
   cancel(): void {
     if (this.status === 'building' && this.abortController) {
+      // Trigger the abort; build() will handle status/progress and events.
       this.abortController.abort();
-      this.status = 'idle';
-      this.updateProgress('init', 'Build cancelled.', 0);
-      this.emit('build:cancelled', {});
     }
   }
 
   // ─── Build Stages (internal) ────────────────────────────────────────────
 
+  /** Throws if the current build has been cancelled. */
+  private ensureNotAborted(): void {
+    const signal = this.abortController?.signal;
+    if (signal && signal.aborted) {
+      const error = new Error('Build cancelled.');
+      // Use a recognizable name so build() can distinguish cancellation.
+      (error as Error).name = 'AbortError';
+      throw error;
+    }
+  }
+
   private validateConfig(config: BuildConfig, warnings: string[]): void {
+    this.ensureNotAborted();
     if (!config.projectName) throw new Error('Project name is required.');
     if (!config.sourceDir) throw new Error('Source directory is required.');
     if (!config.outputDir) throw new Error('Output directory is required.');
@@ -230,6 +262,7 @@ export class BuildPipeline {
   }
 
   private async bundleAssets(config: BuildConfig, warnings: string[]): Promise<BundledAsset[]> {
+    this.ensureNotAborted();
     const bundled: BundledAsset[] = [];
 
     // In a real implementation, this would scan asset directories,
@@ -240,6 +273,7 @@ export class BuildPipeline {
       warnings.push('N64 asset optimization: textures capped at 64x64 RGBA16.');
     }
 
+    this.ensureNotAborted();
     this.emit('build:progress', this.progress);
     return bundled;
   }
