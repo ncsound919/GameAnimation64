@@ -9,7 +9,7 @@
  *   if (window.electronAPI) { ... }
  *
  * Channels exposed:
- *   invoke('vibe:generate', payload)  → returns NodeGraphConfig text
+ *   invoke('vibe:generate', payload)  → returns NodeGraphConfig object
  *   invoke('vibe:chat', payload)      → returns chat response text
  *   invoke('vibe:set-key', key)       → stores the Anthropic API key
  *   invoke('vibe:clear-key')          → clears the stored key
