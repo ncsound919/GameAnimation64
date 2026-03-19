@@ -52,7 +52,7 @@ export class ParticleEmitter {
       this.pool.push(i);
     }
 
-    // Geometry — positions + sizes + colors stored in buffers
+    // Geometry — positions + sizes + colors + alpha stored in buffers
     this.geometry = new THREE.BufferGeometry();
     this.geometry.setAttribute('position',
       new THREE.Float32BufferAttribute(new Float32Array(max * 3), 3));
@@ -60,6 +60,8 @@ export class ParticleEmitter {
       new THREE.Float32BufferAttribute(new Float32Array(max), 1));
     this.geometry.setAttribute('color',
       new THREE.Float32BufferAttribute(new Float32Array(max * 3), 3));
+    this.geometry.setAttribute('aAlpha',
+      new THREE.Float32BufferAttribute(new Float32Array(max), 1));
     this.geometry.setDrawRange(0, 0);
 
     // Material
@@ -71,6 +73,45 @@ export class ParticleEmitter {
       depthWrite:        false,
       blending:          this.blendModeToThree(this.config.blendMode),
     });
+
+    // Inject per-particle size (aSize) and alpha (aAlpha) into the shader.
+    // PointsMaterial uses a single uniform for both, so we override via
+    // onBeforeCompile to multiply per-vertex values into gl_PointSize and
+    // gl_FragColor.a respectively.
+    this.material.onBeforeCompile = (shader) => {
+      // ── Vertex shader: declare attributes and pass alpha to fragment ──
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <color_pars_vertex>',
+        '#include <color_pars_vertex>\nattribute float aSize;\nattribute float aAlpha;\nvarying float vAlpha;'
+      );
+      // Set the varying inside main(), after the built-in color_vertex chunk.
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <color_vertex>',
+        '#include <color_vertex>\nvAlpha = aAlpha;'
+      );
+      // Scale the point size by aSize. Handle both sizeAttenuation variants
+      // used across Three.js versions.
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          'gl_PointSize = size * ( scale / - mvPosition.z );',
+          'gl_PointSize = size * aSize * ( scale / - mvPosition.z );'
+        )
+        .replace(
+          'gl_PointSize = size;',
+          'gl_PointSize = size * aSize;'
+        );
+
+      // ── Fragment shader: declare varying and apply per-particle alpha ──
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_pars_fragment>',
+        '#include <color_pars_fragment>\nvarying float vAlpha;'
+      );
+      // Multiply alpha into the output colour before premultiplication.
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <premultiplied_alpha_fragment>',
+        'gl_FragColor.a *= vAlpha;\n#include <premultiplied_alpha_fragment>'
+      );
+    };
 
     if (this.config.textureUrl) {
       const loader = new THREE.TextureLoader();
@@ -103,6 +144,7 @@ export class ParticleEmitter {
     const positions = this.geometry.getAttribute('position');
     const sizes     = this.geometry.getAttribute('aSize');
     const colors    = this.geometry.getAttribute('color');
+    const alphas    = this.geometry.getAttribute('aAlpha');
 
     for (let i = 0; i < this.particles.length; i++) {
       const p = this.particles[i];
@@ -134,12 +176,13 @@ export class ParticleEmitter {
       const col = sampleGradient(this.config.colorOverLife, lifeT);
       p.color.setRGB(col[0], col[1], col[2]);
       p.alpha = col[3];
-      p.size = sampleSizeCurve(this.config.sizeOverLife, lifeT);
+      p.size  = sampleSizeCurve(this.config.sizeOverLife, lifeT);
 
       // Write to buffers
       positions.setXYZ(aliveCount, p.position.x, p.position.y, p.position.z);
       sizes.setX(aliveCount, p.size);
       colors.setXYZ(aliveCount, p.color.r, p.color.g, p.color.b);
+      alphas.setX(aliveCount, p.alpha);
       aliveCount++;
     }
 
@@ -147,6 +190,7 @@ export class ParticleEmitter {
     positions.needsUpdate = true;
     sizes.needsUpdate     = true;
     colors.needsUpdate    = true;
+    alphas.needsUpdate    = true;
   }
 
   /** Immediately emit a burst of particles. */
