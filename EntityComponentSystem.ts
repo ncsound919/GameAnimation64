@@ -231,7 +231,7 @@ export class World {
     return this.entities.get(id);
   }
 
-  /** Get all active entities. */
+  /** Get all entities (active and inactive). */
   getAllEntities(): Entity[] {
     return [...this.entities.values()];
   }
