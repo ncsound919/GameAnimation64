@@ -129,6 +129,11 @@ export class InputManager {
     element.removeEventListener('mousemove', this.onMouseMove as EventListener);
     element.removeEventListener('touchstart', this.onTouchStart as EventListener);
     element.removeEventListener('touchend', this.onTouchEnd as EventListener);
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('gamepadconnected', this.onGamepadConnected as EventListener);
+      window.removeEventListener('gamepaddisconnected', this.onGamepadDisconnected as EventListener);
+    }
   }
 
   // ─── Action Management ──────────────────────────────────────────────────
