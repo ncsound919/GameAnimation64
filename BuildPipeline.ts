@@ -191,6 +191,7 @@ export class BuildPipeline {
         };
 
         // Reset status back to idle and emit a dedicated cancellation event.
+        this.updateProgress('init', 'Build cancelled.', 0);
         this.status = 'idle';
         this.emit('build:cancelled', result);
         return result;
