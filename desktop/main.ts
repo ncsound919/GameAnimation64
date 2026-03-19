@@ -157,7 +157,20 @@ function registerIPC(): void {
       }
       const data = await res.json() as { text: string };
       // Extract NodeGraphConfig patch from the text response, consistent with browser path
-      return extractJSON(data.text);
+      const jsonString = extractJSON(data.text);
+      if (jsonString == null) {
+        throw new Error('No JSON in agent response');
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(jsonString);
+      } catch {
+        throw new Error('Failed to parse generated JSON patch');
+      }
+      if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('Generated JSON patch is not a valid object');
+      }
+      return parsed;
     },
   );
 
