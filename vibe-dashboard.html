@@ -132,7 +132,11 @@
               return '';
             }
             case 'vibe:set-key':
-              return apiPost('/api/key', { key: args[0] });
+              return fetch(`${API_BASE}/api/key`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: args[0] }),
+              }).then(r => r.ok);
             case 'vibe:clear-key':
               return fetch(`${API_BASE}/api/key`, { method: 'DELETE' }).then(r => r.ok);
             case 'vibe:key-status':
