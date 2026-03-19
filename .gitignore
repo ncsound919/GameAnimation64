@@ -1,6 +1,7 @@
 /build/
 dist/
 out/
+desktop-dist/
 cmake-*
 .idea
 imgui.ini

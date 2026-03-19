@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "outDir": "./desktop-dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "desktop/main.ts",
+    "desktop/preload.ts",
+    "desktop/api-server.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "out",
+    "desktop-dist"
+  ]
+}

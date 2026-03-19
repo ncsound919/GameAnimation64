@@ -5,10 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pyrite64 – Vibe Coding Dashboard</title>
 
-  <!-- Fonts (inter + JetBrains Mono) -->
+  <!-- Fonts: prefer local system fonts, fall back to Google Fonts when online -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* System font fallbacks for fully offline / standalone use */
+    @font-face {
+      font-family: 'Inter';
+      font-style: normal;
+      font-weight: 400 700;
+      src: local('Inter'), local('Inter-Regular'), local('Segoe UI'), local('system-ui');
+    }
+  </style>
 
   <!-- Dashboard stylesheet -->
   <link rel="stylesheet" href="vibe-dashboard.css" />
@@ -16,9 +25,9 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.183.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.183.0/examples/jsm/",
-        "three/examples/jsm/": "https://unpkg.com/three@0.183.0/examples/jsm/"
+        "three": "./node_modules/three/build/three.module.js",
+        "three/addons/": "./node_modules/three/examples/jsm/",
+        "three/examples/jsm/": "./node_modules/three/examples/jsm/"
       }
     }
   </script>
@@ -29,7 +38,7 @@
 
   <!--
     Entry script.
-    In a real Electron build this would be a bundled renderer module.
+    In Electron this runs as the renderer process.
     For dev / standalone preview we bootstrap the dashboard directly.
   -->
   <script type="module">
@@ -68,6 +77,47 @@
         children: [],
       },
     ];
+
+    // ── API integration for standalone mode ──────────────────────────────────
+    // When running standalone (not in Electron), wire up API calls
+    // through the local Express backend.
+    const API_BASE = window.location.origin;
+
+    async function apiPost(endpoint, body) {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || `API error ${res.status}`);
+      }
+      return res.json();
+    }
+
+    // Expose a lightweight electronAPI shim if not running in real Electron
+    if (!window.electronAPI) {
+      window.electronAPI = {
+        async invoke(channel, ...args) {
+          switch (channel) {
+            case 'vibe:generate':
+              return apiPost('/api/generate', args[0]);
+            case 'vibe:chat':
+              return apiPost('/api/chat', args[0]);
+            case 'vibe:set-key':
+              return apiPost('/api/key', { key: args[0] });
+            case 'vibe:clear-key':
+              return fetch(`${API_BASE}/api/key`, { method: 'DELETE' }).then(r => r.ok);
+            case 'vibe:key-status':
+              return fetch(`${API_BASE}/api/key/status`).then(r => r.json());
+            default:
+              throw new Error(`Unknown channel: ${channel}`);
+          }
+        },
+        on() { /* no-op in standalone mode */ },
+      };
+    }
 
     // ── Boot dashboard ───────────────────────────────────────────────────────
     const dashboard = new VibeDashboard({

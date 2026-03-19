@@ -213,15 +213,22 @@
     "compile": "tsc -p tsconfig.extension.json",
     "watch": "tsc -watch -p tsconfig.extension.json",
     "package": "vsce package",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "desktop:build": "tsc -p tsconfig.desktop.json",
+    "desktop:start": "npm run desktop:build && electron desktop-dist/desktop/main.js",
+    "desktop:dev": "npm run desktop:build && NODE_ENV=development electron desktop-dist/desktop/main.js",
+    "desktop": "npm run desktop:start"
   },
   "dependencies": {
     "@types/three": "^0.183.0",
+    "express": "^4.21.2",
     "three": "^0.183.0",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
     "@types/node": "^20.19.33",
-    "@types/vscode": "^1.85.0"
+    "@types/vscode": "^1.85.0",
+    "electron": "^36.3.1"
   }
 }
