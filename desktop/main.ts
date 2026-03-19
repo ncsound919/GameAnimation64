@@ -134,6 +134,33 @@ function registerIPC(): void {
     return data.text;
   });
 
+  // ── Agent generation (NodeGraphConfig patch) ────────────────────────────
+  ipcMain.handle(
+    'vibe:generate-agent',
+    async (
+      _event,
+      payload: {
+        role: string;
+        prompt: string;
+        context: Record<string, unknown>;
+        systemPrompt?: string;
+      },
+    ) => {
+      const res = await fetch(`${baseUrl()}/api/generate-agent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };
+        throw new Error(err.error ?? `API error ${res.status}`);
+      }
+      const data = await res.json() as { text: string };
+      // Extract NodeGraphConfig patch from the text response, consistent with browser path
+      return extractJSON(data.text);
+    },
+  );
+
   // ── API Key management ─────────────────────────────────────────────────
   ipcMain.handle('vibe:set-key', async (_event, key: string) => {
     const res = await fetch(`${baseUrl()}/api/key`, {
