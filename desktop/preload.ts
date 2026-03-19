@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'vibe:key-status',
       'vibe:open-file',
       'vibe:save-file',
+      'vibe:generate-agent',
     ];
     if (!allowed.includes(channel)) {
       return Promise.reject(new Error(`IPC channel "${channel}" is not allowed`));
