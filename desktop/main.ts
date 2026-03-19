@@ -102,8 +102,21 @@ function registerIPC(): void {
       throw new Error(err.error ?? `API error ${res.status}`);
     }
     const data = await res.json() as { text: string };
-    // Extract JSON patch from the text response
-    return extractJSON(data.text);
+    // Extract JSON patch from the text response and parse into an object
+    const jsonString = extractJSON(data.text);
+    if (jsonString == null) {
+      return null;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (e) {
+      throw new Error('Failed to parse generated JSON patch');
+    }
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error('Generated JSON patch is not a valid object');
+    }
+    return parsed;
   });
 
   // ── Chat (multi-turn) ──────────────────────────────────────────────────
