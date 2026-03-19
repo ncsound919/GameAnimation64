@@ -32,21 +32,6 @@ const IS_DEV = process.env.NODE_ENV === 'development';
 let mainWindow: BrowserWindow | null = null;
 let serverPort = 0;
 
-// ─── API Server ──────────────────────────────────────────────────────────────
-
-function startServer(): number {
-  const { getPort, server } = createApiServer(PROJECT_ROOT);
-
-  // Wait for the server to be ready
-  return new Promise<number>((resolve) => {
-    server.on('listening', () => {
-      const port = getPort();
-      console.log(`[Pyrite64] API server listening on http://127.0.0.1:${port}`);
-      resolve(port);
-    });
-  }) as unknown as number;
-}
-
 // ─── Window creation ─────────────────────────────────────────────────────────
 
 async function createWindow(): Promise<void> {
