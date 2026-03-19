@@ -101,10 +101,36 @@
       window.electronAPI = {
         async invoke(channel, ...args) {
           switch (channel) {
-            case 'vibe:generate':
-              return apiPost('/api/generate', args[0]);
-            case 'vibe:chat':
-              return apiPost('/api/chat', args[0]);
+            case 'vibe:generate': {
+              const res = await apiPost('/api/generate', args[0]);
+              // Match Electron IPC: resolve to a NodeGraphConfig object.
+              // Prefer a JSON patch string at res.data.patch, else fall back to res.data or res.
+              if (res && res.data) {
+                const data = res.data;
+                if (typeof data.patch === 'string') {
+                  try {
+                    return JSON.parse(data.patch);
+                  } catch {
+                    // If parsing fails, fall back to the raw data.
+                    return data;
+                  }
+                }
+                return data;
+              }
+              return res;
+            }
+            case 'vibe:chat': {
+              const res = await apiPost('/api/chat', args[0]);
+              // Match Electron IPC: resolve to the response text string.
+              if (res && res.data && typeof res.data.text === 'string') {
+                return res.data.text;
+              }
+              // Fallback: if the whole response is already a string, return it; else empty string.
+              if (typeof res === 'string') {
+                return res;
+              }
+              return '';
+            }
             case 'vibe:set-key':
               return apiPost('/api/key', { key: args[0] });
             case 'vibe:clear-key':
