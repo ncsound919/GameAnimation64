@@ -122,8 +122,9 @@
             case 'vibe:chat': {
               const res = await apiPost('/api/chat', args[0]);
               // Match Electron IPC: resolve to the response text string.
-              if (res && res.data && typeof res.data.text === 'string') {
-                return res.data.text;
+              if (res && typeof res.text === 'string') {
+                return res.text;
+              }
               }
               // Fallback: if the whole response is already a string, return it; else empty string.
               if (typeof res === 'string') {
