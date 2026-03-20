@@ -21,6 +21,12 @@ export interface GameComponentTemplate {
    * Technical constraints or requirements (e.g. "Requires a Collision Body").
    */
   requirements?: string[];
+
+  /**
+   * An optional follow-up prompt suggestion shown to the user after applying
+   * this component, to guide the next vibe coding iteration.
+   */
+  vibePrompt?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -125,6 +131,8 @@ export const GAME_COMPONENTS: GameComponentTemplate[] = [
       nodes.push(onEnter, check, anim, sound);
       
       edges.push(connect(onEnter, 'out', check, 'in'));
+      edges.push(connect(check, 'out', anim, 'in'));
+      edges.push(connect(check, 'out', sound, 'in'));
       
       return { nodes, edges };
     }
