@@ -11,7 +11,7 @@
  * The generated header is included by the entity's .c file and
  * consumed by tiny3d's T3DAnim_create() / T3DAnim_update() API.
  */
-import { evaluateTrack, } from './AnimationClip';
+import { evaluateTrack, } from './AnimationClip.js';
 // ─── Constants ────────────────────────────────────────────────────────────────
 /** N64 runtime sample rate — 30fps matches the RSP mixer tick. */
 const SAMPLE_RATE_FPS = 30;
