@@ -213,13 +213,29 @@ export function createApiServer(staticRoot: string): { app: express.Application;
     });
 
     // Try to extract a JSON NodeGraphConfig patch from the response text
-    const jsonMatch = response.text.match(/```json\s*([\s\S]*?)```/);
+    const text = response.text;
     let patch: unknown = null;
+
+    // Prefer a fenced ```json block if present
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)```/);
+    let jsonString: string | null = null;
+
     if (jsonMatch) {
+      jsonString = jsonMatch[1];
+    } else {
+      // Fallback: attempt to extract raw JSON by taking first '{' .. last '}'
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonString = text.slice(firstBrace, lastBrace + 1);
+      }
+    }
+
+    if (jsonString != null) {
       try {
-        patch = JSON.parse(jsonMatch[1]);
+        patch = JSON.parse(jsonString);
       } catch {
-        // not valid JSON — return raw text
+        // not valid JSON — leave patch as null and return raw text
       }
     }
 
