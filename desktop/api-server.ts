@@ -5,6 +5,7 @@
  * Provides:
  *  - POST /api/chat       → Proxies multi-turn chat to Anthropic API
  *  - POST /api/generate   → Proxies single-shot generation to Anthropic API
+ *  - POST /api/generate-agent → Role-specialized agent generation (animation, combat, etc.)
  *  - POST /api/analyze    → Runs SequenceAnalyzer on a biological sequence
  *  - POST /api/mutations  → Runs MutationTracker on ref + query sequences
  *  - POST /api/physics    → Runs PhysicsCalculator (melting temp, etc.)
@@ -38,6 +39,13 @@ interface ChatRequestBody {
 interface GenerateRequestBody {
   prompt: string;
   context: Record<string, unknown>;
+}
+
+interface GenerateAgentRequestBody {
+  role: string;
+  prompt: string;
+  context: Record<string, unknown>;
+  systemPrompt?: string;
 }
 
 interface AnalyzeRequestBody {
@@ -169,6 +177,69 @@ export function createApiServer(staticRoot: string): { app: express.Application;
       maxTokens: 4096,
     });
     res.json(response);
+  }));
+
+  // ── Vibe Agent: role-specialized AI generation ──────────────────────────
+
+  app.post('/api/generate-agent', asyncHandler(async (req: Request, res: Response) => {
+    const body = req.body as GenerateAgentRequestBody;
+    if (!body.prompt) {
+      res.status(400).json({ error: 'Missing prompt' });
+      return;
+    }
+    if (!anthropicApiKey) {
+      res.status(401).json({ error: 'No API key configured. Set your Anthropic API key in Settings.' });
+      return;
+    }
+
+    const safeRole =
+      typeof body.role === 'string' && body.role.trim().length > 0
+        ? body.role
+        : 'generic';
+    const safeContext =
+      body && typeof body.context === 'object' && body.context !== null
+        ? body.context
+        : {};
+
+    const system =
+      typeof body.systemPrompt === 'string' && body.systemPrompt.trim().length > 0
+        ? body.systemPrompt
+        : buildAgentSystemPrompt(safeRole, safeContext);
+
+    const response = await callAnthropic({
+      system,
+      messages: [{ role: 'user', content: body.prompt }],
+      maxTokens: 4096,
+    });
+
+    // Try to extract a JSON NodeGraphConfig patch from the response text
+    const text = response.text;
+    let patch: unknown = null;
+
+    // Prefer a fenced ```json block if present
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)```/);
+    let jsonString: string | null = null;
+
+    if (jsonMatch) {
+      jsonString = jsonMatch[1];
+    } else {
+      // Fallback: attempt to extract raw JSON by taking first '{' .. last '}'
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonString = text.slice(firstBrace, lastBrace + 1);
+      }
+    }
+
+    if (jsonString != null) {
+      try {
+        patch = JSON.parse(jsonString);
+      } catch {
+        // not valid JSON — leave patch as null and return raw text
+      }
+    }
+
+    res.json({ text: response.text, patch, model: response.model });
   }));
 
   // ── Bio Research: Sequence analysis ─────────────────────────────────────
@@ -349,4 +420,36 @@ function buildChatSystemPrompt(context: Record<string, unknown>): string {
 You may also provide explanations in natural language alongside the JSON patch.
 If the user asks a question, answer it. If they describe behavior, generate the node graph.
 Wrap any JSON patch in a \`\`\`json code fence.`;
+}
+
+function buildAgentSystemPrompt(role: string, context: Record<string, unknown>): string {
+  const entityName = String(context.entityName ?? 'Entity');
+  const nodeTypes = Array.isArray(context.availableNodeTypes) ? context.availableNodeTypes : [];
+
+  const domainGuidance: Record<string, string> = {
+    animation:    'You specialize in skeletal animation, blend trees, state machines, and timeline sequencing.',
+    movement:     'You specialize in locomotion, physics response, pathfinding, and input-driven motion.',
+    combat:       'You specialize in damage flow, combo chains, parries, boss phases, and hit detection.',
+    'ai-behavior':'You specialize in enemy AI, perception cones, patrol/chase/flee state machines, and decision trees.',
+    audio:        'You specialize in SFX triggers, adaptive music cues, and spatial audio wiring.',
+    scene:        'You specialize in scene transitions, object spawning, lifecycle events, and cutscenes.',
+    build:        'You specialize in node graph cleanup, N64 budget optimization, and graph refactoring.',
+  };
+
+  const domain = domainGuidance[role] ?? 'You are a general-purpose Pyrite64 Node-Graph assistant.';
+
+  return `You are a Pyrite64 Vibe-Coding agent (role: ${role}). ${domain}
+Generate a NodeGraphConfig JSON patch for the entity "${entityName}".
+
+AVAILABLE NODE TYPES: ${nodeTypes.join(', ')}
+
+CONSTRAINTS:
+- No heap allocations at runtime
+- No dynamic strings
+- Only valid Pyrite64 node types
+- Output must be serializable to .p64graph format
+- N64 hardware: 4MB RDRAM, 64 tri/mesh, 800 verts/frame
+- Keep graphs under 20 nodes where possible
+
+Wrap any JSON patch in a \`\`\`json code fence. You may explain your choices briefly.`;
 }
