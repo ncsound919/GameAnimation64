@@ -192,10 +192,19 @@ export function createApiServer(staticRoot: string): { app: express.Application;
       return;
     }
 
+    const safeRole =
+      typeof body.role === 'string' && body.role.trim().length > 0
+        ? body.role
+        : 'generic';
+    const safeContext =
+      body && typeof body.context === 'object' && body.context !== null
+        ? body.context
+        : {};
+
     const system =
       typeof body.systemPrompt === 'string' && body.systemPrompt.trim().length > 0
         ? body.systemPrompt
-        : buildAgentSystemPrompt(body.role ?? 'generic', body.context);
+        : buildAgentSystemPrompt(safeRole, safeContext);
 
     const response = await callAnthropic({
       system,
