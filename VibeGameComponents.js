@@ -644,10 +644,10 @@ export const GAME_COMPONENTS = [
             const clrChg = node('SetState', 850, 550, { name: 'ChargeTime', value: 0 });
             nodes.push(hold, incChg, addOne, oneV, setChg, rel, chgVal, isChgd, thres, bBranch, shootAnim, spawn1, vel1, sfxShot, life1, dest1, chgAnim, spawn2, vel2, sfxBig, life2, dest2, clrChg);
             edges.push(connect(hold, 'out', incChg, 'in'));
+            edges.push(connect(hold, 'out', setChg, 'in'));
             edges.push(connect(incChg, 'value', addOne, 'A'));
             edges.push(connect(oneV, 'value', addOne, 'B'));
             edges.push(connect(addOne, 'result', setChg, 'value'));
-            edges.push(connect(addOne, 'result', setChg, 'in'));
             edges.push(connect(rel, 'out', chgVal, 'in'));
             edges.push(connect(chgVal, 'value', isChgd, 'A'));
             edges.push(connect(thres, 'value', isChgd, 'B'));
