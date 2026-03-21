@@ -12,7 +12,7 @@
  * The timeline operates on AnimClip data and emits events that the
  * viewport and inspector panels consume for real-time preview.
  */
-import { addTrack, insertKeyframe, removeKeyframe, evaluateTrack, } from './AnimationClip';
+import { addTrack, insertKeyframe, removeKeyframe, evaluateTrack, } from './AnimationClip.js';
 // ─── AnimationTimeline ────────────────────────────────────────────────────────
 export class AnimationTimeline {
     constructor(opts) {
