@@ -12,7 +12,7 @@
  * Designed to dock in the Pyrite64 editor layout alongside the
  * node graph canvas, viewport, and timeline panels.
  */
-import { VibeNode, } from './VibeNode';
+import { VibeNode, } from './VibeNode.js';
 const QUICK_ACTIONS = [
     {
         label: 'Patrol',
