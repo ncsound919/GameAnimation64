@@ -219,9 +219,12 @@ export class ExampleGameEngine {
    * Create a particle effect at a position.
    */
   createExplosion(position: [number, number, number]): void {
-    // Create particle emitter
-    this.particles.createFromPreset('explosion', 'fire');
-    const emitter = this.particles.getEmitter('explosion');
+    // Reuse the existing particle emitter if it has already been created.
+    let emitter = this.particles.getEmitter('explosion');
+    if (!emitter) {
+      this.particles.createFromPreset('explosion', 'fire');
+      emitter = this.particles.getEmitter('explosion');
+    }
     if (emitter) {
       emitter.position.set(...position);
       emitter.emit(50); // Burst 50 particles
