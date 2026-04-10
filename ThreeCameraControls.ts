@@ -308,8 +308,10 @@ export class CameraManager {
       targetPos.z + offset[2]
     );
 
-    // Smoothly interpolate to desired position
-    this.camera.position.lerp(desiredPos, this.followConfig.smoothness);
+    // Smoothly interpolate to desired position using time-based exponential smoothing
+    const smoothingDelta = Math.max(0, deltaTime);
+    const alpha = 1 - Math.exp(-this.followConfig.smoothness * smoothingDelta);
+    this.camera.position.lerp(desiredPos, alpha);
 
     // Look at target with offset
     const lookAtPos = new THREE.Vector3(
