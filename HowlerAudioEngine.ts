@@ -298,7 +298,10 @@ export class HowlerAudioEngine {
   }
 
   private computeLayerVolume(baseVolume: number): number {
-    return baseVolume * this.musicVolume * this.masterVolume;
+    // Howler.volume() (set in setMasterVolume) acts as a global multiplier,
+    // so we only apply the per-layer and music-category scales here to avoid
+    // double-applying master volume.
+    return baseVolume * this.musicVolume;
   }
 
   /** Play a music layer (or restart if already playing). */

@@ -435,6 +435,8 @@ export class UnifiedInputManager {
    * arrive between animation frames remain observable for one update cycle.
    */
   update(): void {
+    if (!this.enabled) return;
+
     // Reset mouse delta and wheel for the new frame
     this.mouse.deltaX = 0;
     this.mouse.deltaY = 0;
