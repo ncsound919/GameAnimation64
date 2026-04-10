@@ -1,5 +1,21 @@
 /**
  * AnimationTimeline.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `ThreeAnimationWrapper.ts`
+ *
+ * **Why migrate?**
+ * - Three.js AnimationMixer provides timeline functionality
+ * - Integration with industry-standard animation tools
+ * - Support for complex animation graphs
+ * - Better performance with native Three.js integration
+ * - Access to Three.js animation editor ecosystem
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Keyframe timeline panel for Pyrite64's animation system.
  *
  * Renders an interactive timeline with:

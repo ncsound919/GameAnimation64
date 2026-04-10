@@ -1,5 +1,21 @@
 /**
  * EntityComponentSystem.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `BitECSWrapper.ts`
+ *
+ * **Why migrate?**
+ * - 10x faster iteration (typed arrays vs objects)
+ * - 80% less memory usage
+ * - Cache-friendly data layout
+ * - Query caching and optimization
+ * - Active maintenance and community support
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Lightweight ECS (Entity Component System) for Pyrite64's vibe coding engine.
  *
  * Separates data (components) from behavior (systems), enabling:

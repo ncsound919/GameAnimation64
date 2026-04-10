@@ -1,5 +1,23 @@
 /**
  * CinematicCamera.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `ThreeCameraControls.ts`
+ *
+ * **Why migrate?**
+ * - Unified camera control system with six modes
+ * - Built on Three.js controls for better compatibility
+ * - Advanced follow camera with velocity-based look-ahead
+ * - Cinematic mode with spline-based camera paths
+ * - Sophisticated camera shake with multiple patterns
+ * - Smooth mode transitions and camera blending
+ * - Integration with UnifiedInputManager for all input types
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Advanced camera & cinematography tools for Pyrite64's vibe coding engine.
  *
  * Extends the base CameraController with:
