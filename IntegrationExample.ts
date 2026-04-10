@@ -353,6 +353,8 @@ export class ExampleGameEngine {
       this.entityPhysicsMap.clear();
       this.entityMeshMap.clear();
       this.particles.dispose();
+      this.initialized = false;
+    }
     }
     this.audio.dispose();
     this.ecs.clear();
