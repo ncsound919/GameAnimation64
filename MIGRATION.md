@@ -24,34 +24,48 @@ This document tracks the migration from custom hand-coded components to establis
    - Status: New wrapper created
    - Benefits: Cache-friendly typed arrays, extreme performance
 
-### 🚧 In Progress
+### ✅ Completed (continued)
 
 4. **Particle System** → three-nebula
-   - Target: Replace `ParticleSystem.ts`
-   - Status: Library installed, wrapper needed
+   - File: `NebulaParticleSystem.ts`
+   - Replaces: `ParticleSystem.ts`
+   - Status: New wrapper created with preset library
+   - Benefits: More emitter shapes, advanced behaviors, better GPU optimization
 
 5. **Animation System** → Three.js AnimationMixer
-   - Target: Replace `AnimationClip.ts`, `AnimationTimeline.ts`
-   - Status: Need to create wrapper
+   - File: `ThreeAnimationWrapper.ts`
+   - Replaces: `AnimationClip.ts`, `AnimationTimeline.ts`
+   - Status: New wrapper created with event system
+   - Benefits: Native Three.js integration, skeletal animation, blending
+
+6. **Integration Example**
+   - File: `IntegrationExample.ts`
+   - Status: Complete example game engine showing all components working together
+   - Benefits: Reference implementation, demonstrates best practices
+
+### 🚧 In Progress
+
+7. **Visual Node Editor** → rete.js
+   - Target: Enhance `VibeNode.ts`
+   - Status: Library installed, integration pending
 
 ### 📋 Planned
 
-6. **Visual Node Editor** → rete.js
-   - Target: Enhance `VibeNode.ts`
-   - Status: Library installed
-
-7. **Camera Controls** → Three.js Controls
+8. **Camera Controls** → Three.js Controls
    - Target: Replace `CameraController.ts`, `CinematicCamera.ts`
+   - Status: Planned - can use OrbitControls, FlyControls directly
 
-8. **Input Management** → gamepad.js + keymaster
+9. **Input Management** → gamepad.js + keymaster
    - Target: Replace `InputManager.ts`
+   - Status: Planned
 
-9. **Build Pipeline** → Vite
-   - Target: Replace `BuildPipeline.ts`, modernize build system
+10. **Build Pipeline** → Vite
+    - Target: Replace `BuildPipeline.ts`, modernize build system
+    - Status: Planned - significant migration effort
 
-10. **Vector Math** → gl-matrix
+11. **Vector Math** → gl-matrix
     - Target: Replace custom vec3 functions in physics
-    - Status: Library installed
+    - Status: Library installed, can be used directly
 
 ## Usage Examples
 
@@ -114,6 +128,36 @@ audio.playSpatialSFX('explosion', [10, 0, 5], 1.0, 1.0);
 audio.setListenerPosition([playerX, playerY, playerZ]);
 ```
 
+### Particle System (three-nebula)
+
+```typescript
+import { NebulaParticleSystem } from './NebulaParticleSystem';
+
+const particleSystem = new NebulaParticleSystem(scene, camera);
+
+// Create from preset
+particleSystem.createFromPreset('fire_emitter', 'fire');
+const emitter = particleSystem.getEmitter('fire_emitter');
+
+// Update in render loop
+particleSystem.update(deltaTime);
+```
+
+### Animation System (Three.js AnimationMixer)
+
+```typescript
+import { AnimationController } from './ThreeAnimationWrapper';
+
+const controller = new AnimationController(characterModel);
+controller.addClips(gltfModel.animations);
+
+// Play animation with crossfade
+controller.play('walk', { loop: true, speed: 1.0, fadeInDuration: 0.3 });
+
+// Update in render loop
+controller.update(deltaTime);
+```
+
 ### ECS (bitECS)
 
 ```typescript
@@ -133,6 +177,15 @@ world.runSystem(movingObjectsQuery, movementSystem, deltaTime);
 const transform = world.getTransform(player);
 console.log('Player position:', transform.position);
 ```
+
+### Complete Integration Example
+
+See `IntegrationExample.ts` for a full working example that combines all components:
+- Physics simulation with Rapier
+- Audio with spatial positioning
+- ECS for game logic
+- Particle effects
+- Animated characters
 
 ## Migration Strategy
 
