@@ -111,6 +111,13 @@ export class NebulaParticleSystem {
 
     const emitter = new Emitter();
 
+    // Respect particle cap from config/preset.
+    if (typeof (emitter as any).setMaxParticles === 'function') {
+      (emitter as any).setMaxParticles(cfg.maxParticles);
+    } else {
+      (emitter as any).maxParticles = cfg.maxParticles;
+    }
+
     // Set emission rate
     emitter.setRate(new Rate(new Span(cfg.emissionRate, cfg.emissionRate), new Span(0.1, 0.2)));
 

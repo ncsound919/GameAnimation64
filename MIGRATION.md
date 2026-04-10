@@ -4,6 +4,8 @@ This document tracks the migration from custom hand-coded components to establis
 
 ## Migration Status
 
+All previously hand-wired runtime components now default to open-source counterparts (Rapier, Howler, bitECS, three-nebula, Three.js controls/animation/input) in the new engine wrappers.
+
 ### ✅ Completed
 
 1. **Physics Engine** → Rapier3D

@@ -89,6 +89,13 @@ export class CameraManager {
   private cinematicTime = 0;
   private cinematicPlaying = false;
   private cinematicLoop = false;
+  private followDesiredPos = new THREE.Vector3();
+  private followLookAtPos = new THREE.Vector3();
+  private cinematicPos1 = new THREE.Vector3();
+  private cinematicPos2 = new THREE.Vector3();
+  private cinematicLookAt1 = new THREE.Vector3();
+  private cinematicLookAt2 = new THREE.Vector3();
+  private cinematicLookAt = new THREE.Vector3();
 
   constructor(
     domElement: HTMLElement,
@@ -302,7 +309,7 @@ export class CameraManager {
     const lookAtOffset = this.followConfig.lookAtOffset;
 
     // Calculate desired camera position
-    const desiredPos = new THREE.Vector3(
+    const desiredPos = this.followDesiredPos.set(
       targetPos.x + offset[0],
       targetPos.y + offset[1],
       targetPos.z + offset[2]
@@ -314,7 +321,7 @@ export class CameraManager {
     this.camera.position.lerp(desiredPos, alpha);
 
     // Look at target with offset
-    const lookAtPos = new THREE.Vector3(
+    const lookAtPos = this.followLookAtPos.set(
       targetPos.x + lookAtOffset[0],
       targetPos.y + lookAtOffset[1],
       targetPos.z + lookAtOffset[2]
@@ -361,13 +368,13 @@ export class CameraManager {
     const t =
       (this.cinematicTime - keyframe1.time) / (keyframe2.time - keyframe1.time);
 
-    const pos1 = new THREE.Vector3(...keyframe1.position);
-    const pos2 = new THREE.Vector3(...keyframe2.position);
+    const pos1 = this.cinematicPos1.set(...keyframe1.position);
+    const pos2 = this.cinematicPos2.set(...keyframe2.position);
     this.camera.position.lerpVectors(pos1, pos2, t);
 
-    const lookAt1 = new THREE.Vector3(...keyframe1.lookAt);
-    const lookAt2 = new THREE.Vector3(...keyframe2.lookAt);
-    const lookAt = new THREE.Vector3().lerpVectors(lookAt1, lookAt2, t);
+    const lookAt1 = this.cinematicLookAt1.set(...keyframe1.lookAt);
+    const lookAt2 = this.cinematicLookAt2.set(...keyframe2.lookAt);
+    const lookAt = this.cinematicLookAt.lerpVectors(lookAt1, lookAt2, t);
     this.camera.lookAt(lookAt);
 
     // Interpolate FOV if specified

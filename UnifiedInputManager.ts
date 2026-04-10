@@ -103,6 +103,7 @@ export class UnifiedInputManager {
   // Configuration
   private gamepadDeadzone = 0.15;
   private mouseSensitivity = 1.0;
+  private onContextMenu = (e: MouseEvent): void => { e.preventDefault(); };
 
   constructor(element: HTMLElement = document.body) {
     this.element = element;
@@ -121,7 +122,7 @@ export class UnifiedInputManager {
     this.element.addEventListener('mouseup', this.onMouseUp);
     this.element.addEventListener('mousemove', this.onMouseMove);
     this.element.addEventListener('wheel', this.onMouseWheel);
-    this.element.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.element.addEventListener('contextmenu', this.onContextMenu);
 
     // Pointer lock
     document.addEventListener('pointerlockchange', this.onPointerLockChange);
@@ -434,13 +435,15 @@ export class UnifiedInputManager {
    * arrive between animation frames remain observable for one update cycle.
    */
   update(): void {
+    if (!this.enabled) return;
+
     // Reset mouse delta and wheel for the new frame
     this.mouse.deltaX = 0;
     this.mouse.deltaY = 0;
     this.mouse.wheel = 0;
 
     // Update gamepads (must poll manually)
-    this.updateGamepads();
+    const gamepadTriggeredAction = this.updateGamepads();
 
     // Clear transient states after the current frame has had a chance to
     // observe them, so events delivered between frames are not lost.
@@ -452,10 +455,15 @@ export class UnifiedInputManager {
       this.clearTransientInputStates();
       this.transientClearTimeout = null;
     }, 0);
+
+    if (gamepadTriggeredAction) {
+      this.checkActions();
+    }
   }
 
-  private updateGamepads(): void {
+  private updateGamepads(): boolean {
     const gamepads = navigator.getGamepads();
+    let hasNewPress = false;
 
     for (let i = 0; i < gamepads.length; i++) {
       const gamepad = gamepads[i];
@@ -485,6 +493,7 @@ export class UnifiedInputManager {
       for (let j = 0; j < state.buttons.length; j++) {
         if (state.buttons[j] && !prevButtons[j]) {
           state.justPressed.add(j);
+          hasNewPress = true;
         } else if (!state.buttons[j] && prevButtons[j]) {
           state.justReleased.add(j);
         }
@@ -493,6 +502,8 @@ export class UnifiedInputManager {
       // Update axes
       state.axes = Array.from(gamepad.axes);
     }
+
+    return hasNewPress;
   }
 
   // ─── Configuration ──────────────────────────────────────────────────────
@@ -522,6 +533,7 @@ export class UnifiedInputManager {
     this.element.removeEventListener('mouseup', this.onMouseUp);
     this.element.removeEventListener('mousemove', this.onMouseMove);
     this.element.removeEventListener('wheel', this.onMouseWheel);
+    this.element.removeEventListener('contextmenu', this.onContextMenu);
     document.removeEventListener('pointerlockchange', this.onPointerLockChange);
     window.removeEventListener('gamepadconnected', this.onGamepadConnected);
     window.removeEventListener('gamepaddisconnected', this.onGamepadDisconnected);
