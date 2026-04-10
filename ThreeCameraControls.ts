@@ -230,7 +230,7 @@ export class CameraManager {
   setupCinematicCamera(keyframes: CinematicKeyframe[], loop = false): void {
     this.disposeCurrentControls();
     this.controlType = 'cinematic';
-    this.cinematicKeyframes = keyframes.sort((a, b) => a.time - b.time);
+    this.cinematicKeyframes = keyframes.slice().sort((a, b) => a.time - b.time);
     this.cinematicLoop = loop;
     this.cinematicTime = 0;
   }
