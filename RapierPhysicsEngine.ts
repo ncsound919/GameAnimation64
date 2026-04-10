@@ -360,7 +360,8 @@ export class RapierPhysicsWorld {
     const hit = this.world!.castRay(ray, maxDistance, true);
     if (!hit) return null;
 
-    const collider = hit.collider;
+    const collider = this.world!.getCollider(hit.collider);
+    if (!collider) return null;
     const body = collider.parent();
     if (!body) return null;
 
