@@ -270,8 +270,11 @@ export class NebulaParticleSystem {
         return new SphereZone(0, 0, 0, size[0]);
       case 'box':
         return new BoxZone(size[0], size[1], size[2]);
+      case 'cone':
+      case 'ring':
+        throw new Error(`Unsupported emitter shape: ${shape}`);
       default:
-        return new PointZone();
+        throw new Error(`Unknown emitter shape: ${shape}`);
     }
   }
 
