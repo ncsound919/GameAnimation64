@@ -198,6 +198,7 @@ export class AudioSource {
 export class HowlerAudioEngine {
   private clips: Map<string, AudioClip> = new Map();
   private musicLayers: Map<string, Howl> = new Map();
+  private musicLayerBaseVolumes: Map<string, number> = new Map();
   private sources: AudioSource[] = [];
   private masterVolume = 1.0;
   private musicVolume = 1.0;
@@ -284,14 +285,20 @@ export class HowlerAudioEngine {
    * Layers can be dynamically faded in/out to create responsive soundtracks.
    */
   loadMusicLayer(config: MusicLayerConfig): void {
+    const baseVolume = Math.max(0, Math.min(1, config.volume));
     const howl = new Howl({
       src:    config.url,
-      volume: config.volume * this.musicVolume * this.masterVolume,
+      volume: this.computeLayerVolume(baseVolume),
       loop:   config.loop,
       preload: true,
     });
 
     this.musicLayers.set(config.id, howl);
+    this.musicLayerBaseVolumes.set(config.id, baseVolume);
+  }
+
+  private computeLayerVolume(baseVolume: number): number {
+    return baseVolume * this.musicVolume * this.masterVolume;
   }
 
   /** Play a music layer (or restart if already playing). */
@@ -302,10 +309,14 @@ export class HowlerAudioEngine {
       return;
     }
 
+    const baseVolume = this.musicLayerBaseVolumes.get(id) ?? 1;
+    const targetVolume = this.computeLayerVolume(baseVolume);
+
     if (!layer.playing()) {
+      layer.volume(targetVolume);
       layer.play();
       if (fadeInMs > 0) {
-        layer.fade(0, layer.volume(), fadeInMs);
+        layer.fade(0, targetVolume, fadeInMs);
       }
     }
   }
@@ -328,7 +339,9 @@ export class HowlerAudioEngine {
     const layer = this.musicLayers.get(id);
     if (!layer) return;
 
-    const targetVol = volume * this.musicVolume * this.masterVolume;
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    this.musicLayerBaseVolumes.set(id, clampedVolume);
+    const targetVol = this.computeLayerVolume(clampedVolume);
 
     if (fadeDuration > 0) {
       layer.fade(layer.volume(), targetVol, fadeDuration);
@@ -354,8 +367,9 @@ export class HowlerAudioEngine {
   setMusicVolume(vol: number): void {
     this.musicVolume = Math.max(0, Math.min(1, vol));
     // Update all active music layers
-    for (const layer of this.musicLayers.values()) {
-      layer.volume(this.musicVolume * this.masterVolume);
+    for (const [id, layer] of this.musicLayers) {
+      const baseVolume = this.musicLayerBaseVolumes.get(id) ?? 1;
+      layer.volume(this.computeLayerVolume(baseVolume));
     }
   }
 
@@ -417,6 +431,7 @@ export class HowlerAudioEngine {
       layer.unload();
     }
     this.musicLayers.clear();
+    this.musicLayerBaseVolumes.clear();
 
     this.sources = [];
   }

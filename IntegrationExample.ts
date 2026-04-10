@@ -35,6 +35,7 @@ export class ExampleGameEngine {
 
   // Entity-to-physics mapping
   private entityPhysicsMap: Map<number, number> = new Map();
+  private entityMeshMap: Map<number, THREE.Object3D> = new Map();
 
   // Animation controllers per entity
   private animationControllers: Map<number, AnimationController> = new Map();
@@ -42,6 +43,7 @@ export class ExampleGameEngine {
   // Timing
   private clock: THREE.Clock;
   private running = false;
+  private initialized = false;
 
   constructor(canvas: HTMLCanvasElement) {
     // Initialize Three.js
@@ -62,9 +64,12 @@ export class ExampleGameEngine {
 
     // Initialize clock
     this.clock = new THREE.Clock();
+  }
 
-    // Set up scene
-    this.setupScene();
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      throw new Error('Call init() before using ExampleGameEngine.');
+    }
   }
 
   async init(): Promise<void> {
@@ -80,6 +85,10 @@ export class ExampleGameEngine {
 
     // Load audio assets
     this.loadAudioAssets();
+
+    // Build scene objects once physics and particles are ready
+    this.setupScene();
+    this.initialized = true;
 
     console.log('✅ Game engine initialized with open-source components');
   }
@@ -102,21 +111,11 @@ export class ExampleGameEngine {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // Create the static ground collider only after physics has been assigned.
-    const createGroundColliderWhenReady = (): void => {
-      if (!this.physics) {
-        requestAnimationFrame(createGroundColliderWhenReady);
-        return;
-      }
-
-      this.physics.createBody(
-        [0, 0, 0],
-        { mass: 0 }, // static
-        { type: 'box', halfExtents: [25, 0.1, 25] }
-      );
-    };
-
-    createGroundColliderWhenReady();
+    this.physics.createBody(
+      [0, 0, 0],
+      { mass: 0 }, // static
+      { type: 'box', halfExtents: [25, 0.1, 25] }
+    );
   }
 
   private loadAudioAssets(): void {
@@ -156,6 +155,8 @@ export class ExampleGameEngine {
    * Create a physics-enabled dynamic object (e.g., a ball).
    */
   createPhysicsBall(position: [number, number, number]): number {
+    this.ensureInitialized();
+
     // Create ECS entity
     const entity = this.ecs.createEntity('PhysicsBall');
     this.ecs.addTransform(entity, position);
@@ -168,6 +169,7 @@ export class ExampleGameEngine {
     mesh.position.set(...position);
     mesh.castShadow = true;
     this.scene.add(mesh);
+    this.entityMeshMap.set(entity, mesh);
 
     // Create physics body
     const physicsHandle = this.physics.createBody(
@@ -187,6 +189,8 @@ export class ExampleGameEngine {
    * Create an animated character.
    */
   createCharacter(position: [number, number, number], model: THREE.Object3D): number {
+    this.ensureInitialized();
+
     // Create ECS entity
     const entity = this.ecs.createEntity('Character');
     this.ecs.addTransform(entity, position);
@@ -194,6 +198,7 @@ export class ExampleGameEngine {
     // Add to scene
     model.position.set(...position);
     this.scene.add(model);
+    this.entityMeshMap.set(entity, model);
 
     // Set up animations (assuming model has animations)
     const controller = new AnimationController(model);
@@ -219,6 +224,8 @@ export class ExampleGameEngine {
    * Create a particle effect at a position.
    */
   createExplosion(position: [number, number, number]): void {
+    this.ensureInitialized();
+
     // Reuse the existing particle emitter if it has already been created.
     let emitter = this.particles.getEmitter('explosion');
     if (!emitter) {
@@ -237,6 +244,7 @@ export class ExampleGameEngine {
   // ─── Game Loop ───────────────────────────────────────────────────────────
 
   start(): void {
+    this.ensureInitialized();
     this.running = true;
     this.clock.start();
     this.gameLoop();
@@ -304,12 +312,10 @@ export class ExampleGameEngine {
       // Update ECS transform
       this.ecs.setPosition(entityId, position);
 
-      // Find corresponding mesh in scene and update
-      this.scene.traverse((obj) => {
-        if ((obj as any).entityId === entityId && obj instanceof THREE.Mesh) {
-          obj.position.set(...position);
-        }
-      });
+      const mesh = this.entityMeshMap.get(entityId);
+      if (mesh) {
+        mesh.position.set(...position);
+      }
     }
   }
 
@@ -342,10 +348,14 @@ export class ExampleGameEngine {
 
   dispose(): void {
     this.running = false;
-    this.physics.clear();
+    if (this.initialized) {
+      this.physics.clear();
+      this.entityPhysicsMap.clear();
+      this.entityMeshMap.clear();
+      this.particles.dispose();
+    }
     this.audio.dispose();
     this.ecs.clear();
-    this.particles.dispose();
     this.renderer.dispose();
   }
 }

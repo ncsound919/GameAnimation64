@@ -30,6 +30,7 @@ export interface RigidBodyConfig {
   isKinematic:  boolean;      // move via setPosition, not forces
   collisionLayer: number;
   collisionMask:  number;
+  density?:     number;       // optional explicit density override (kg/m^3)
 }
 
 // ─── Collider Shapes ─────────────────────────────────────────────────────────
@@ -223,7 +224,10 @@ export class RapierPhysicsWorld {
     );
 
     if (cfg.mass > 0 && !cfg.isKinematic) {
-      colliderDesc.setDensity(cfg.mass);
+      const density = cfg.density ?? this.computeDensity(cfg.mass, shape);
+      if (density !== null) {
+        colliderDesc.setDensity(density);
+      }
     }
 
     const collider = this.world!.createCollider(colliderDesc, body);
@@ -231,6 +235,38 @@ export class RapierPhysicsWorld {
     this.colliders.set(handle, collider);
 
     return handle;
+  }
+
+  /** Compute density from a desired mass and collider shape volume. */
+  private computeDensity(mass: number, shape: ColliderShape): number | null {
+    const volume = this.computeShapeVolume(shape);
+    if (!volume || volume <= 0) return null;
+    return mass / volume;
+  }
+
+  /** Compute the volume of a collider shape (in m^3). */
+  private computeShapeVolume(shape: ColliderShape): number | null {
+    switch (shape.type) {
+      case 'box': {
+        const [hx, hy, hz] = shape.halfExtents;
+        return 8 * hx * hy * hz; // (2*hx)*(2*hy)*(2*hz)
+      }
+      case 'sphere':
+        return (4 / 3) * Math.PI * Math.pow(shape.radius, 3);
+      case 'capsule': {
+        const r = shape.radius;
+        const h = shape.height;
+        const cylinderVolume = Math.PI * r * r * h;
+        const sphereVolume = (4 / 3) * Math.PI * Math.pow(r, 3);
+        return cylinderVolume + sphereVolume;
+      }
+      case 'cylinder':
+        return Math.PI * shape.radius * shape.radius * shape.height;
+      case 'cone':
+        return (1 / 3) * Math.PI * shape.radius * shape.radius * shape.height;
+      default:
+        return null;
+    }
   }
 
   /** Remove a body from the world. */
