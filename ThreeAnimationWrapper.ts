@@ -93,8 +93,12 @@ export class AnimationController {
    */
   removeClip(name: string): void {
     const action = this.actions.get(name);
+    const clip = this.clips.get(name);
+
     if (action) {
-      this.mixer.uncacheAction(this.clips.get(name)!);
+      if (clip) {
+        this.mixer.uncacheAction(clip);
+      }
       this.actions.delete(name);
     }
     this.clips.delete(name);
