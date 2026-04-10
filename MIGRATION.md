@@ -343,7 +343,7 @@ All new implementations are additive and don't break existing code.
 
 ## Next Steps
 
-1. Create particle system wrapper for three-nebula
+1. Integrate and validate the existing `NebulaParticleSystem.ts` wrapper for three-nebula
 2. Benchmark performance differences
 3. Update VSCode extension to use new implementations
 4. Create migration examples for desktop app
