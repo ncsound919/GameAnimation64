@@ -363,7 +363,8 @@ engine.start();
 
 // Handle keyboard input
 window.addEventListener('keydown', (e) => {
-  engine.handleInput(e.key);
+  const input = e.key === ' ' ? 'space' : e.key.toLowerCase();
+  engine.handleInput(input);
 });
 
 // Cleanup on page unload
