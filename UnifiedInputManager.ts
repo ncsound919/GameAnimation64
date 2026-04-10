@@ -62,7 +62,6 @@ export interface TouchState {
 export interface ActionBinding {
   device: InputDevice;
   input: string | number; // Key code, button index, etc.
-  modifiers?: string[]; // For keyboard: shift, ctrl, alt, meta
 }
 
 export type ActionCallback = () => void;
