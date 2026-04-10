@@ -43,21 +43,25 @@ This document tracks the migration from custom hand-coded components to establis
    - Status: Complete example game engine showing all components working together
    - Benefits: Reference implementation, demonstrates best practices
 
-### 🚧 In Progress
+### ✅ Completed (continued)
 
-7. **Visual Node Editor** → rete.js
-   - Target: Enhance `VibeNode.ts`
-   - Status: Library installed, integration pending
+7. **Camera Controls** → Three.js Controls
+   - File: `ThreeCameraControls.ts`
+   - Replaces: `CameraController.ts`, `CinematicCamera.ts`
+   - Status: Complete wrapper with multiple control modes
+   - Benefits: Orbit, Fly, FirstPerson, PointerLock, Follow, Cinematic modes
+
+8. **Input Management** → Unified Input System
+   - File: `UnifiedInputManager.ts`
+   - Replaces: `InputManager.ts`
+   - Status: Complete input system with action mapping
+   - Benefits: Unified API, gamepad support, touch gestures, haptic feedback
 
 ### 📋 Planned
 
-8. **Camera Controls** → Three.js Controls
-   - Target: Replace `CameraController.ts`, `CinematicCamera.ts`
-   - Status: Planned - can use OrbitControls, FlyControls directly
-
-9. **Input Management** → gamepad.js + keymaster
-   - Target: Replace `InputManager.ts`
-   - Status: Planned
+9. **Visual Node Editor** → rete.js
+   - Target: Enhance `VibeNode.ts`
+   - Status: Library installed, integration pending
 
 10. **Build Pipeline** → Vite
     - Target: Replace `BuildPipeline.ts`, modernize build system
@@ -178,6 +182,89 @@ const transform = world.getTransform(player);
 console.log('Player position:', transform.position);
 ```
 
+### Camera Controls (Three.js)
+
+```typescript
+import { CameraManager, CameraShake } from './ThreeCameraControls';
+
+const cameraManager = new CameraManager(canvas, {
+  fov: 75,
+  position: [0, 5, 10],
+  lookAt: [0, 0, 0]
+});
+
+// Orbit controls (best for scene inspection)
+cameraManager.setupOrbitControls({
+  enableDamping: true,
+  autoRotate: true,
+  minDistance: 2,
+  maxDistance: 50
+});
+
+// Follow camera (for player character)
+cameraManager.setupFollowCamera(playerObject, {
+  offset: [0, 3, 8],
+  lookAtOffset: [0, 1, 0],
+  smoothness: 0.1
+});
+
+// Cinematic camera with keyframes
+cameraManager.setupCinematicCamera([
+  { time: 0, position: [0, 5, 10], lookAt: [0, 0, 0] },
+  { time: 2, position: [5, 8, 5], lookAt: [0, 0, 0], fov: 60 },
+  { time: 4, position: [0, 10, 0], lookAt: [0, 0, 0], fov: 90 }
+], true); // loop=true
+
+cameraManager.playCinematic();
+
+// Camera shake for impact effects
+const shake = new CameraShake(cameraManager.getCamera());
+shake.shake(0.5, 0.3); // intensity, duration
+
+// Update in render loop
+cameraManager.update(deltaTime);
+shake.update(deltaTime);
+```
+
+### Input Management (Unified)
+
+```typescript
+import { UnifiedInputManager } from './UnifiedInputManager';
+
+const input = new UnifiedInputManager(canvas);
+
+// Map actions to inputs
+input.mapAction('jump',
+  { device: 'keyboard', input: 'Space' },
+  { device: 'gamepad', input: 0 } // A button
+);
+
+input.mapAction('fire',
+  { device: 'mouse', input: 0 }, // Left click
+  { device: 'gamepad', input: 7 } // Right trigger
+);
+
+// Register action callbacks
+input.onAction('jump', () => {
+  player.jump();
+});
+
+// Query input directly
+if (input.isAction('fire')) {
+  player.shoot();
+}
+
+// Gamepad axes
+const leftStickX = input.getGamepadAxis(0, 0);
+const leftStickY = input.getGamepadAxis(0, 1);
+
+// Haptic feedback
+input.vibrate(0, 1.0, 200); // gamepad 0, full intensity, 200ms
+
+// Update at start of each frame
+input.update();
+```
+
 ### Complete Integration Example
 
 See `IntegrationExample.ts` for a full working example that combines all components:
@@ -186,6 +273,8 @@ See `IntegrationExample.ts` for a full working example that combines all compone
 - ECS for game logic
 - Particle effects
 - Animated characters
+- Camera controls
+- Input handling
 
 ## Migration Strategy
 
