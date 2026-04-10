@@ -416,25 +416,42 @@ export class UnifiedInputManager {
 
   // ─── Update ─────────────────────────────────────────────────────────────
 
-  /**
-   * Update input state (call at the start of each frame).
-   */
-  update(): void {
-    // Clear "just pressed/released" states
+  private transientClearTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  private clearTransientInputStates(): void {
     this.keyboard.justPressed.clear();
     this.keyboard.justReleased.clear();
     this.mouse.justPressed.clear();
     this.mouse.justReleased.clear();
     this.touch.justStarted.clear();
     this.touch.justEnded.clear();
+  }
 
-    // Reset mouse delta and wheel
+  /**
+   * Update input state (call at the start of each frame).
+   *
+   * Transient input states are cleared after the current frame so events that
+   * arrive between animation frames remain observable for one update cycle.
+   */
+  update(): void {
+    // Reset mouse delta and wheel for the new frame
     this.mouse.deltaX = 0;
     this.mouse.deltaY = 0;
     this.mouse.wheel = 0;
 
     // Update gamepads (must poll manually)
     this.updateGamepads();
+
+    // Clear transient states after the current frame has had a chance to
+    // observe them, so events delivered between frames are not lost.
+    if (this.transientClearTimeout !== null) {
+      clearTimeout(this.transientClearTimeout);
+    }
+
+    this.transientClearTimeout = setTimeout(() => {
+      this.clearTransientInputStates();
+      this.transientClearTimeout = null;
+    }, 0);
   }
 
   private updateGamepads(): void {
