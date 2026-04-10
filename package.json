@@ -223,10 +223,7 @@
     "@types/three": "^0.183.0",
     "bitecs": "^0.4.0",
     "express": "^4.21.2",
-    "gl-matrix": "^3.4.4",
     "howler": "^2.2.4",
-    "rete": "^2.0.6",
-    "rete-react-plugin": "^2.1.0",
     "three": "^0.183.0",
     "three-nebula": "^10.0.3",
     "typescript": "^5.9.3"
