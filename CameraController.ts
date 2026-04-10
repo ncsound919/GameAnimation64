@@ -1,5 +1,22 @@
 /**
  * CameraController.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `ThreeCameraControls.ts`
+ *
+ * **Why migrate?**
+ * - Six camera modes (Orbit, Fly, FirstPerson, PointerLock, Follow, Cinematic)
+ * - Built on Three.js ecosystem controls
+ * - Smooth transitions between camera modes
+ * - Follow camera with configurable smoothing and look-ahead
+ * - Cinematic camera with spline paths and camera shake
+ * - Better touch and gamepad support
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Orbit (hold Alt + drag) and Fly (WASD) camera controller for the viewport.
  *
  * Wraps Three.js OrbitControls as the base, adds:

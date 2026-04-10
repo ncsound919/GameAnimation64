@@ -1,5 +1,21 @@
 /**
  * AudioEngine.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `HowlerAudioEngine.ts`
+ *
+ * **Why migrate?**
+ * - Cross-browser compatibility (automatic HTML5 Audio fallback)
+ * - Better spatial audio with HRTF
+ * - Adaptive music layer system
+ * - Mobile device support (auto-unlock)
+ * - Active maintenance and community support
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Spatial audio engine with adaptive music for Pyrite64's vibe coding engine.
  *
  * Built on the Web Audio API for cross-platform compatibility.

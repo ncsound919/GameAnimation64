@@ -1,5 +1,21 @@
 /**
  * AnimationClip.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `ThreeAnimationWrapper.ts`
+ *
+ * **Why migrate?**
+ * - Battle-tested Three.js AnimationMixer system
+ * - Support for skeletal animation and morph targets
+ * - Built-in animation blending and crossfading
+ * - Native GLTF/FBX animation import
+ * - Active maintenance and ecosystem support
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Animation data model for Pyrite64's keyframe animation system.
  *
  * Represents skeletal and transform animations that can be:

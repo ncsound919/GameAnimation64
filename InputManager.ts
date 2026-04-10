@@ -1,5 +1,23 @@
 /**
  * InputManager.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `UnifiedInputManager.ts`
+ *
+ * **Why migrate?**
+ * - Cleaner, more maintainable API
+ * - Better gamepad hot-plugging support
+ * - Touch gesture recognition built-in
+ * - Improved pointer lock handling
+ * - Per-frame state tracking with "justPressed/justReleased"
+ * - Configurable dead zones and mouse sensitivity
+ * - Modern event-driven architecture
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * Abstracted input handling with haptics for Pyrite64's vibe coding engine.
  *
  * Provides:

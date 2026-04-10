@@ -1,5 +1,21 @@
 /**
  * GamePhysicsEngine.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `RapierPhysicsEngine.ts`
+ *
+ * **Why migrate?**
+ * - 2.8x faster performance (Rust/WASM)
+ * - Production-grade collision detection
+ * - Continuous Collision Detection (CCD)
+ * - Better constraint solvers
+ * - Active maintenance and community support
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * 2D/3D physics engine for Pyrite64's vibe coding game engine.
  *
  * Provides:

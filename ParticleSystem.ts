@@ -1,5 +1,21 @@
 /**
  * ParticleSystem.ts
+ *
+ * ⚠️ **DEPRECATED** - This file is deprecated and will be removed in a future version.
+ *
+ * **Please migrate to:** `NebulaParticleSystem.ts`
+ *
+ * **Why migrate?**
+ * - More emitter shapes and behaviors
+ * - Advanced particle forces (attractors, repulsors)
+ * - Better GPU optimization
+ * - Rich preset library
+ * - Active maintenance and community support
+ *
+ * **Migration guide:** See DEPRECATED.md for detailed migration instructions.
+ *
+ * ---
+ *
  * GPU-accelerated particle & VFX system for Pyrite64's vibe coding engine.
  *
  * Uses Three.js Points / InstancedMesh for efficient GPU-side rendering.
