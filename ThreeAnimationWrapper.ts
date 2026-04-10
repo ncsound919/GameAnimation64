@@ -320,14 +320,25 @@ export class AnimationController {
 
     // Process events
     if (this.currentAction) {
-      const name = this.currentAction.getClip().name;
+      const clip = this.currentAction.getClip();
+      const name = clip.name;
       const events = this.eventListeners.get(name);
       if (events) {
         const currentTime = this.currentAction.time;
+        const duration = clip.duration;
+        const prevTimeRaw = currentTime - deltaTime;
+        const prevTime =
+          duration > 0 ? ((prevTimeRaw % duration) + duration) % duration : prevTimeRaw;
+        const wrapped = duration > 0 && prevTime > currentTime;
+
         for (const event of events) {
-          // Trigger if we've passed the event time this frame
-          const prevTime = currentTime - deltaTime;
-          if (prevTime < event.time && currentTime >= event.time) {
+          // Trigger if we've passed the event time this frame, including loop wrap-around.
+          const crossedEvent = wrapped
+            ? (prevTime < event.time && event.time <= duration) ||
+              (0 <= event.time && event.time <= currentTime)
+            : prevTime < event.time && currentTime >= event.time;
+
+          if (crossedEvent) {
             event.callback();
           }
         }
