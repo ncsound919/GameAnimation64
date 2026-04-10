@@ -511,5 +511,6 @@ export class UnifiedInputManager {
     this.element.removeEventListener('touchstart', this.onTouchStart);
     this.element.removeEventListener('touchmove', this.onTouchMove);
     this.element.removeEventListener('touchend', this.onTouchEnd);
+    this.element.removeEventListener('touchcancel', this.onTouchEnd);
   }
 }
