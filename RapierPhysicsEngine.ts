@@ -326,14 +326,14 @@ export class RapierPhysicsWorld {
       const collider2 = this.world!.getCollider(h2);
       if (!collider1 || !collider2) return;
 
-      const body1 = collider1.parent();
-      const body2 = collider2.parent();
-      if (!body1 || !body2) return;
+      const body1Handle = collider1.parent();
+      const body2Handle = collider2.parent();
+      if (body1Handle == null || body2Handle == null) return;
 
       // Get contact information
       const contact: CollisionContact = {
-        bodyA: body1.handle,
-        bodyB: body2.handle,
+        bodyA: body1Handle,
+        bodyB: body2Handle,
         normal: [0, 1, 0], // Rapier doesn't provide this in event, would need manifolds
         depth: 0,
         point: [0, 0, 0],
