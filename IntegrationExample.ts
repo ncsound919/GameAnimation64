@@ -102,12 +102,21 @@ export class ExampleGameEngine {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // Create static ground collider in physics
-    const groundBody = this.physics.createBody(
-      [0, 0, 0],
-      { mass: 0 }, // static
-      { type: 'box', halfExtents: [25, 0.1, 25] }
-    );
+    // Create the static ground collider only after physics has been assigned.
+    const createGroundColliderWhenReady = (): void => {
+      if (!this.physics) {
+        requestAnimationFrame(createGroundColliderWhenReady);
+        return;
+      }
+
+      this.physics.createBody(
+        [0, 0, 0],
+        { mass: 0 }, // static
+        { type: 'box', halfExtents: [25, 0.1, 25] }
+      );
+    };
+
+    createGroundColliderWhenReady();
   }
 
   private loadAudioAssets(): void {
