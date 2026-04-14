@@ -317,7 +317,7 @@ export class ScienceEngine {
    */
   discover(query: DiscoveryQuery): DiscoveryResult[] {
     const limit   = Math.min(query.limit ?? 5, 20);
-    const domains = query.domains ?? ALL_DOMAINS;
+    const domains = query.domains?.length ? query.domains : ALL_DOMAINS;
     const results = this.syntheticDiscover(query.text, domains, limit);
     this.emit('discoveryComplete', results);
     return results;
