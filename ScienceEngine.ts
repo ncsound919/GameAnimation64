@@ -681,7 +681,6 @@ export class ScienceEnginePanel {
 
   private wireEngineEvents(): void {
     this.refreshJobList();
-    this.ensureJobRefreshLoop();
     this.engine
       .on('analyticsComplete', () => {
         this.refreshJobList();
@@ -695,10 +694,8 @@ export class ScienceEnginePanel {
   private ensureJobRefreshLoop(): void {
     if (this.jobRefreshTimer !== null) return;
     this.jobRefreshTimer = setInterval(() => {
-      const hasRunning = this.engine.listJobs().some(j => j.status === 'running');
-      if (hasRunning) {
-        this.refreshJobList();
-      } else {
+      this.refreshJobList();
+      if (!this.engine.listJobs().some(j => j.status === 'running')) {
         this.stopJobRefreshLoop();
       }
     }, 250);

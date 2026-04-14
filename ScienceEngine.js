@@ -564,11 +564,8 @@ export class ScienceEnginePanel {
   _ensureJobRefreshLoop() {
     if (this._jobRefreshTimer) return;
     this._jobRefreshTimer = setInterval(() => {
-      const jobs = this.engine.listJobs();
-      const hasRunningJobs = jobs.some((job) => job.status === 'running');
-      if (hasRunningJobs) {
-        this._refreshJobList();
-      } else {
+      this._refreshJobList();
+      if (!this.engine.listJobs().some((job) => job.status === 'running')) {
         this._stopJobRefreshLoop();
       }
     }, 250);
@@ -582,12 +579,10 @@ export class ScienceEnginePanel {
 
   _wireEngineEvents() {
     this._refreshJobList();
-    this._ensureJobRefreshLoop();
     this.engine
       .on('analyticsComplete', () => {
         this._refreshJobList();
-        const hasRunningJobs = this.engine.listJobs().some((job) => job.status === 'running');
-        if (!hasRunningJobs) {
+        if (!this.engine.listJobs().some((job) => job.status === 'running')) {
           this._stopJobRefreshLoop();
         }
       })
