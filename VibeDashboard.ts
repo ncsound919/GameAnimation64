@@ -110,12 +110,12 @@ export class VibeDashboard {
     };
 
     // ── Construct sub-components ───────────────────────────────────────────
-    this.agentPool   = new VibeAgentPool();
-    this.agentPanel  = new VibeAgentStatusPanel(this.agentPool);
-    this.sidebar     = new VibeSidebar();
-    this.chat        = new VibeChat(ctx, this.agentPool);
-    this.timeline    = new VibeAnimTimeline();
-    this.creatorPage = new VibeCreatorPage();
+    this.agentPool    = new VibeAgentPool();
+    this.agentPanel   = new VibeAgentStatusPanel(this.agentPool);
+    this.sidebar      = new VibeSidebar();
+    this.chat         = new VibeChat(ctx, this.agentPool);
+    this.timeline     = new VibeAnimTimeline();
+    this.creatorPage  = new VibeCreatorPage();
     this.sciencePanel = new ScienceEnginePanel();
     this.toastHost = document.createElement('div');
     this.toastHost.id = 'vibe-toast-host';
