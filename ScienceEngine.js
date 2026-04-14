@@ -504,9 +504,36 @@ export class ScienceEnginePanel {
     }
   }
 
+  _ensureJobRefreshLoop() {
+    if (this._jobRefreshTimer) return;
+    this._jobRefreshTimer = setInterval(() => {
+      const jobs = this.engine.listJobs();
+      const hasRunningJobs = jobs.some((job) => job.status === 'running');
+      if (hasRunningJobs) {
+        this._refreshJobList();
+      } else {
+        this._stopJobRefreshLoop();
+      }
+    }, 250);
+  }
+
+  _stopJobRefreshLoop() {
+    if (!this._jobRefreshTimer) return;
+    clearInterval(this._jobRefreshTimer);
+    this._jobRefreshTimer = null;
+  }
+
   _wireEngineEvents() {
+    this._refreshJobList();
+    this._ensureJobRefreshLoop();
     this.engine
-      .on('analyticsComplete', () => this._refreshJobList())
+      .on('analyticsComplete', () => {
+        this._refreshJobList();
+        const hasRunningJobs = this.engine.listJobs().some((job) => job.status === 'running');
+        if (!hasRunningJobs) {
+          this._stopJobRefreshLoop();
+        }
+      })
       .on('discoveryComplete', (results) => this._renderResults(results));
   }
 }
