@@ -208,8 +208,12 @@ export class ScienceEngine {
    * Returns a ranked list of results with cross-disciplinary connection hints.
    */
   discover(query) {
-    const limit   = Math.min(query.limit ?? 5, 20);
-    const domains = query.domains ?? ALL_DOMAINS;
+    const limit            = Math.min(query.limit ?? 5, 20);
+    const requestedDomains = query.domains;
+    const domains          =
+      !requestedDomains || requestedDomains.length === 0
+        ? ALL_DOMAINS
+        : requestedDomains;
     const results = this._syntheticDiscover(query.text, domains, limit);
     this._emit('discoveryComplete', results);
     return results;
