@@ -35,6 +35,7 @@ import { VibeAgentStatusPanel } from './VibeAgentStatusPanel.js';
 import { VibeCreatorPage } from './VibeCreatorPage.js';
 import { BiotechImagingPass, ImagingMode, ColorMap } from './BiotechImagingPass.js';
 import { SimulationConfig, runSimulation, BioEntity } from './BiotechSimulation.js';
+import { ScienceEngine, ScienceEnginePanel } from './ScienceEngine.js';
 
 // ─── Dashboard options ────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ export class VibeDashboard {
   private agentPool:   VibeAgentPool;
   private agentPanel:  VibeAgentStatusPanel;
   private creatorPage: VibeCreatorPage;
+  private sciencePanel: ScienceEnginePanel;
 
   /** Biotech imaging post-process pass (lazily initialized with the composer). */
   private biotechPass: BiotechImagingPass | null = null;
@@ -108,12 +110,13 @@ export class VibeDashboard {
     };
 
     // ── Construct sub-components ───────────────────────────────────────────
-    this.agentPool  = new VibeAgentPool();
-    this.agentPanel = new VibeAgentStatusPanel(this.agentPool);
-    this.sidebar = new VibeSidebar();
-    this.chat    = new VibeChat(ctx, this.agentPool);
-    this.timeline = new VibeAnimTimeline();
-    this.creatorPage = new VibeCreatorPage();
+    this.agentPool    = new VibeAgentPool();
+    this.agentPanel   = new VibeAgentStatusPanel(this.agentPool);
+    this.sidebar      = new VibeSidebar();
+    this.chat         = new VibeChat(ctx, this.agentPool);
+    this.timeline     = new VibeAnimTimeline();
+    this.creatorPage  = new VibeCreatorPage();
+    this.sciencePanel = new ScienceEnginePanel();
     this.toastHost = document.createElement('div');
     this.toastHost.id = 'vibe-toast-host';
 
@@ -210,6 +213,7 @@ export class VibeDashboard {
     this.timeline.dispose();
     this.agentPanel.dispose();
     this.creatorPage.dispose();
+    this.sciencePanel.dispose();
     this.opts.container.innerHTML = '';
   }
 
@@ -455,6 +459,16 @@ export class VibeDashboard {
     return this.timeline;
   }
 
+  /** Get the ScienceEngine instance for external integration. */
+  getScienceEngine(): ScienceEngine {
+    return this.sciencePanel.engine;
+  }
+
+  /** Get the ScienceEnginePanel component for external integration. */
+  getSciencePanel(): ScienceEnginePanel {
+    return this.sciencePanel;
+  }
+
   // ── Viewport init ──────────────────────────────────────────────────────────
 
   private initViewport(): void {
@@ -533,11 +547,12 @@ export class VibeDashboard {
     // Top bar
     shell.appendChild(this.buildTopBar());
 
-    // Sidebar column (sidebar + agent status panel)
+    // Sidebar column (sidebar + agent status panel + science engine panel)
     const sidebarCol = document.createElement('div');
     sidebarCol.id = 'vibe-sidebar-col';
     sidebarCol.appendChild(this.sidebar.el);
     sidebarCol.appendChild(this.agentPanel.el);
+    sidebarCol.appendChild(this.sciencePanel.el);
     shell.appendChild(sidebarCol);
 
     // Viewport
