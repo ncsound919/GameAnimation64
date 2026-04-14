@@ -608,8 +608,7 @@ export class ScienceEnginePanel {
     const text = this.searchInput.value.trim();
     if (!text) return;
     this.resultsEl.innerHTML = '<div class="sci-loading">Discovering…</div>';
-    const results = this.engine.discover({ text, limit: 4 });
-    this.renderResults(results);
+    this.engine.discover({ text, limit: 4 });
   }
 
   private renderResults(results: DiscoveryResult[]): void {
