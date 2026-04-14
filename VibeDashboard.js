@@ -33,6 +33,7 @@ import { VibeAgentStatusPanel } from './VibeAgentStatusPanel.js';
 import { VibeCreatorPage } from './VibeCreatorPage.js';
 import { BiotechImagingPass } from './BiotechImagingPass.js';
 import { runSimulation } from './BiotechSimulation.js';
+import { ScienceEnginePanel } from './ScienceEngine.js';
 // ─── VibeDashboard ────────────────────────────────────────────────────────────
 export class VibeDashboard {
     constructor(opts) {
@@ -60,6 +61,7 @@ export class VibeDashboard {
         this.chat = new VibeChat(ctx, this.agentPool);
         this.timeline = new VibeAnimTimeline();
         this.creatorPage = new VibeCreatorPage();
+        this.sciencePanel = new ScienceEnginePanel();
         this.toastHost = document.createElement('div');
         this.toastHost.id = 'vibe-toast-host';
         // ── Wire agent pool events ──────────────────────────────────────────────
@@ -142,6 +144,7 @@ export class VibeDashboard {
         this.timeline.dispose();
         this.agentPanel.dispose();
         this.creatorPage.dispose();
+        this.sciencePanel.dispose();
         this.opts.container.innerHTML = '';
     }
     // ── Biotech imaging API ────────────────────────────────────────────────────
@@ -370,6 +373,14 @@ export class VibeDashboard {
     getTimeline() {
         return this.timeline;
     }
+    /** Get the ScienceEngine instance for external integration. */
+    getScienceEngine() {
+        return this.sciencePanel.engine;
+    }
+    /** Get the ScienceEnginePanel component for external integration. */
+    getSciencePanel() {
+        return this.sciencePanel;
+    }
     // ── Viewport init ──────────────────────────────────────────────────────────
     initViewport() {
         const canvasHost = document.getElementById('viewport-canvas-host');
@@ -443,6 +454,7 @@ export class VibeDashboard {
         sidebarCol.id = 'vibe-sidebar-col';
         sidebarCol.appendChild(this.sidebar.el);
         sidebarCol.appendChild(this.agentPanel.el);
+        sidebarCol.appendChild(this.sciencePanel.el);
         shell.appendChild(sidebarCol);
         // Viewport
         shell.appendChild(this.buildViewportPanel());
