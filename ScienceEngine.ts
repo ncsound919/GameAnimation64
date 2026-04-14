@@ -40,7 +40,7 @@ export interface ScienceCapability {
   tier:        CapabilityTier;
   label:       string;
   description: string;
-  /** Icon glyph rendered in the panel header. */
+  /** Icon glyph rendered inside each capability card. */
   icon:        string;
 }
 
