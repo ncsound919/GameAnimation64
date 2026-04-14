@@ -197,10 +197,61 @@ export class ScienceEngine {
   // ── Event emitter ─────────────────────────────────────────────────────────
 
   on(event, handler) {
-    this.handlers[event] = handler;
+    const current = this.handlers[event];
+
+    if (!current) {
+      this.handlers[event] = handler;
+      return this;
+    }
+
+    if (current._listenerSet instanceof Set) {
+      current._listenerSet.add(handler);
+      return this;
+    }
+
+    this.handlers[event] = this._createHandlerDispatcher(current, handler);
     return this;
   }
 
+  off(event, handler) {
+    const current = this.handlers[event];
+
+    if (!current) {
+      return this;
+    }
+
+    if (current === handler) {
+      delete this.handlers[event];
+      return this;
+    }
+
+    if (!(current._listenerSet instanceof Set)) {
+      return this;
+    }
+
+    current._listenerSet.delete(handler);
+
+    if (current._listenerSet.size === 0) {
+      delete this.handlers[event];
+      return this;
+    }
+
+    if (current._listenerSet.size === 1) {
+      this.handlers[event] = current._listenerSet.values().next().value;
+    }
+
+    return this;
+  }
+
+  _createHandlerDispatcher(...handlers) {
+    const listeners = new Set(handlers);
+    const dispatcher = (...args) => {
+      listeners.forEach((listener) => listener(...args));
+    };
+
+    dispatcher._listenerSet = listeners;
+    return dispatcher;
+  }
   // ── Discovery ─────────────────────────────────────────────────────────────
 
   /**
