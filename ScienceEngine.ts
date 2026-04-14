@@ -422,7 +422,7 @@ export class ScienceEngine {
         title:      `${capitalize(domain)} insight: ${text.slice(0, 40)}`,
         summary:    `Contextually relevant finding in ${domain} matching query: "${query}".`,
         domain,
-        relevance:  Math.round((1 - i * 0.08) * 100) / 100,
+        relevance:  Math.round(Math.max(0, Math.min(1, 1 - i * 0.08)) * 100) / 100,
         connection: i % 3 === 0
           ? `Cross-disciplinary link to ${domains[(i + 1) % domains.length]}`
           : '',
