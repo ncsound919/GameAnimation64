@@ -287,7 +287,7 @@ export const SCIENCE_CAPABILITIES: ScienceCapability[] = [
  * collaboration sessions, and governance log.
  */
 export class ScienceEngine {
-  private handlers:     Partial<ScienceEngineEvents> = {};
+  private listeners:    Partial<{ [K in keyof ScienceEngineEvents]: Array<ScienceEngineEvents[K]> }> = {};
   private jobs:         Map<string, AnalyticsJob>    = new Map();
   private collaborators:Map<string, CollaboratorInfo>= new Map();
   private auditLog:     GovernanceRecord[]           = [];
@@ -302,7 +302,19 @@ export class ScienceEngine {
     event: K,
     handler: ScienceEngineEvents[K],
   ): this {
-    this.handlers[event] = handler as ScienceEngineEvents[K];
+    (this.listeners[event] ??= [] as any).push(handler);
+    return this;
+  }
+
+  off<K extends keyof ScienceEngineEvents>(
+    event: K,
+    handler: ScienceEngineEvents[K],
+  ): this {
+    const arr = this.listeners[event] as Array<ScienceEngineEvents[K]> | undefined;
+    if (arr) {
+      const idx = arr.indexOf(handler);
+      if (idx !== -1) arr.splice(idx, 1);
+    }
     return this;
   }
 
@@ -403,8 +415,9 @@ export class ScienceEngine {
     event: K,
     ...args: Parameters<ScienceEngineEvents[K]>
   ): void {
-    const h = this.handlers[event];
-    if (h) (h as (...a: unknown[]) => void)(...args);
+    for (const cb of (this.listeners[event] as Array<(...a: any[]) => void>) ?? []) {
+      cb(...args);
+    }
   }
 
   /** Synthetic discovery implementation for UI/dev purposes. */
@@ -478,12 +491,13 @@ export class ScienceEnginePanel {
   readonly el:     HTMLElement;
   readonly engine: ScienceEngine;
 
-  private activeTier:   CapabilityTier = 'core';
-  private tierBtns:     Map<CapabilityTier, HTMLElement> = new Map();
-  private capGridEl!:   HTMLElement;
-  private resultsEl!:   HTMLElement;
-  private jobsEl!:      HTMLElement;
-  private searchInput!: HTMLInputElement;
+  private activeTier:      CapabilityTier = 'core';
+  private tierBtns:        Map<CapabilityTier, HTMLElement> = new Map();
+  private capGridEl!:      HTMLElement;
+  private resultsEl!:      HTMLElement;
+  private jobsEl!:         HTMLElement;
+  private searchInput!:    HTMLInputElement;
+  private jobRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(engine?: ScienceEngine) {
     this.engine = engine ?? new ScienceEngine();
@@ -495,6 +509,7 @@ export class ScienceEnginePanel {
   // ── Public ────────────────────────────────────────────────────────────────
 
   dispose(): void {
+    this.stopJobRefreshLoop();
     this.el.remove();
   }
 
@@ -573,6 +588,7 @@ export class ScienceEnginePanel {
         const label  = btn.textContent ?? domain;
         this.engine.submitAnalyticsJob(label, domain);
         this.refreshJobList();
+        this.ensureJobRefreshLoop();
       });
     });
 
@@ -664,9 +680,34 @@ export class ScienceEnginePanel {
   // ── Engine event wiring ───────────────────────────────────────────────────
 
   private wireEngineEvents(): void {
+    this.refreshJobList();
+    this.ensureJobRefreshLoop();
     this.engine
-      .on('analyticsComplete', () => this.refreshJobList())
+      .on('analyticsComplete', () => {
+        this.refreshJobList();
+        if (!this.engine.listJobs().some(j => j.status === 'running')) {
+          this.stopJobRefreshLoop();
+        }
+      })
       .on('discoveryComplete', (results) => this.renderResults(results));
+  }
+
+  private ensureJobRefreshLoop(): void {
+    if (this.jobRefreshTimer !== null) return;
+    this.jobRefreshTimer = setInterval(() => {
+      const hasRunning = this.engine.listJobs().some(j => j.status === 'running');
+      if (hasRunning) {
+        this.refreshJobList();
+      } else {
+        this.stopJobRefreshLoop();
+      }
+    }, 250);
+  }
+
+  private stopJobRefreshLoop(): void {
+    if (this.jobRefreshTimer === null) return;
+    clearInterval(this.jobRefreshTimer);
+    this.jobRefreshTimer = null;
   }
 }
 

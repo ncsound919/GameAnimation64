@@ -384,15 +384,17 @@ export class ScienceEngine {
  */
 export class ScienceEnginePanel {
   constructor(engine) {
-    this.engine      = engine ?? new ScienceEngine();
-    this.activeTier  = 'core';
-    this.tierBtns    = new Map();
-    this.el          = this._buildDOM();
+    this.engine           = engine ?? new ScienceEngine();
+    this.activeTier       = 'core';
+    this.tierBtns         = new Map();
+    this._jobRefreshTimer = null;
+    this.el               = this._buildDOM();
     this._wireEngineEvents();
     this._renderCapabilities();
   }
 
   dispose() {
+    this._stopJobRefreshLoop();
     this.el.remove();
   }
 
@@ -470,6 +472,7 @@ export class ScienceEnginePanel {
         const label  = btn.textContent ?? domain;
         this.engine.submitAnalyticsJob(label, domain);
         this._refreshJobList();
+        this._ensureJobRefreshLoop();
       });
     });
 
